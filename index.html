@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NeoPuzzle — Gesture Capture & 3×3 Puzzle</title>
+  <meta name="description" content="Aplikasi fotobooth NeoPuzzle dengan gesture tangan untuk membuat puzzle 3x3 interaktif." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+  <div id="app">
+    <!-- Fullscreen Stage -->
+    <div id="stage">
+      <video id="webcam" playsinline autoplay muted></video>
+      <canvas id="sceneCanvas"></canvas>
+
+      <!-- HUD Top Bar -->
+      <div class="hud-top">
+        <div class="brand">
+          <i class="ph-bold ph-viewfinder"></i>
+          <span class="brand-name">NEO<span class="brand-accent">PUZZLE</span></span>
+          <span class="brand-sub">hand-frame capture</span>
+        </div>
+        <div class="hud-right">
+          <div class="status-pill">
+            <span id="statusDot" class="status-dot"></span>
+            <span id="statusText">memuat kamera…</span>
+          </div>
+          <button id="galleryToggleBtn" class="settings-btn" title="Photo Strip Gallery">
+            <i class="ph ph-film-strip"></i>
+          </button>
+          <button id="settingsBtn" class="settings-btn" title="Pengaturan">
+            <i class="ph ph-gear-six"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Settings Panel -->
+      <div id="settingsPanel" class="settings-panel">
+        <div class="settings-title">
+          <i class="ph ph-sliders-horizontal"></i> Pengaturan
+        </div>
+        <div class="settings-group">
+          <span class="settings-group-label">Batas Waktu Puzzle</span>
+          <label class="radio-option">
+            <input type="radio" name="timerLimit" value="0" id="timerNone" checked />
+            <span>Tanpa Batas</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="timerLimit" value="60" id="timer1" />
+            <span>1 Menit</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="timerLimit" value="120" id="timer2" />
+            <span>2 Menit</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="timerLimit" value="180" id="timer3" />
+            <span>3 Menit</span>
+          </label>
+        </div>
+        <div id="settingsNotice" class="settings-notice" style="display: none;">
+          <i class="ph ph-lock-key"></i> Terkunci selama sesi foto
+        </div>
+      </div>
+
+      <!-- Timer Badge -->
+      <div id="timerBadge" class="timer-badge">
+        <i class="ph ph-timer"></i>
+        <span id="timerText">0:00</span>
+      </div>
+
+      <!-- Progress Badge -->
+      <div id="progressBadge" class="progress-badge">
+        <i class="ph ph-puzzle-piece"></i>
+        <span id="progressText">0 / 9 terpasang</span>
+      </div>
+
+      <!-- Filter Selector (floating) -->
+      <div id="filterControl" class="filter-control">
+        <i class="ph ph-palette"></i>
+        <select id="filterSelect" class="filter-select">
+          <option value="color" selected>Warna Asli</option>
+          <option value="bw">Hitam Putih</option>
+          <option value="sepia">Sepia</option>
+          <option value="vivid">Kontras Tinggi</option>
+        </select>
+      </div>
+
+      <!-- Error Banner -->
+      <div id="errorBanner" class="error-banner"></div>
+
+      <!-- Loading Overlay -->
+      <div id="loadingOverlay" class="overlay">
+        <div class="loader-content">
+          <div class="spinner"></div>
+          <p id="loaderText">Menyiapkan MediaPipe Hand Tracker…</p>
+          <button id="loaderRetry" class="btn btn-retry hidden" onclick="location.reload()">
+            <i class="ph ph-arrow-clockwise"></i> Coba Lagi
+          </button>
+        </div>
+      </div>
+
+      <!-- Instruction Toast -->
+      <div id="instructionToast" class="instruction-toast hidden">
+        <i class="ph ph-hand-grabbing"></i>
+        <span id="instructionText">Tunjukkan 2 tangan & cubit untuk framing</span>
+      </div>
+
+      <!-- Solved Popup -->
+      <div id="solvedPopup" class="canvas-popup popup-solved">
+        <div class="popup-icon"><i class="ph-bold ph-trophy"></i></div>
+        <div class="popup-title">Puzzle Selesai!</div>
+        <div class="popup-sub">Kepal tangan (<i class="ph ph-hand-fist"></i>) untuk menyimpan ke strip</div>
+      </div>
+
+      <!-- Time's Up Popup -->
+      <div id="timeupPopup" class="canvas-popup popup-timeup">
+        <div class="popup-icon"><i class="ph-bold ph-alarm"></i></div>
+        <div class="popup-title">Waktu Habis!</div>
+        <div class="popup-sub">Puzzle akan direset otomatis</div>
+      </div>
+    </div>
+
+    <!-- Gallery Sidebar -->
+    <aside id="gallerySidebar" class="gallery-sidebar">
+      <div class="gallery-header">
+        <div class="gallery-title">
+          <i class="ph ph-film-strip"></i>
+          <span>Photo Strip</span>
+        </div>
+        <span id="galleryCount" class="gallery-count">0 / 3</span>
+      </div>
+
+      <div id="galleryStrip" class="gallery-strip">
+        <div id="galleryEmpty" class="gallery-empty">
+          <i class="ph-thin ph-image-broken"></i>
+          <p>Selesaikan puzzle untuk menambah foto</p>
+        </div>
+      </div>
+
+      <div id="stripCompleteMsg" class="strip-complete">
+        <i class="ph ph-check-circle"></i> Strip lengkap!
+      </div>
+
+      <div class="gallery-actions">
+        <button id="downloadStripBtn" class="btn btn-download" disabled>
+          <i class="ph ph-download-simple"></i> Unduh Strip
+        </button>
+        <button id="resetAllBtn" class="btn btn-reset">
+          <i class="ph ph-trash"></i> Bersihkan
+        </button>
+      </div>
+    </aside>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
