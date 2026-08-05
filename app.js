@@ -377,17 +377,7 @@ function applyFilter(imageData, filterType) {
   return imageData;
 }
 
-function applyFilterInsideBox(box) {
-  if (activeFilter === "color") return;
-  const x = Math.max(0, Math.round(box.x));
-  const y = Math.max(0, Math.round(box.y));
-  const w = Math.min(canvas.width - x, Math.round(box.width));
-  const h = Math.min(canvas.height - y, Math.round(box.height));
-  if (w <= 0 || h <= 0) return;
-  const region = ctx.getImageData(x, y, w, h);
-  applyFilter(region, activeFilter);
-  ctx.putImageData(region, x, y);
-}
+
 
 /* ═══════════════════════════════════════════════════════════════════════
    COUNTDOWN & CAPTURE
@@ -409,9 +399,6 @@ function drawCountdownOverlay(box) {
     finishCountdownAndCapture(box);
     return;
   }
-
-  // Apply filter preview inside box
-  applyFilterInsideBox(box);
 
   ctx.save();
   // Neo Blue frame
@@ -726,7 +713,7 @@ function drawVideoFrame() {
   ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
   ctx.restore();
 
-  if (activeFilter !== "color" && appState === "tracking") {
+  if (activeFilter !== "color") {
     const fullImg = ctx.getImageData(0, 0, canvas.width, canvas.height);
     applyFilter(fullImg, activeFilter);
     ctx.putImageData(fullImg, 0, 0);
@@ -1347,7 +1334,6 @@ function processResults(result) {
     if (appState === "tracking") {
       const sinceLast = performance.now() - lastSeenFrame.at;
       if (lastSeenFrame.box && sinceLast < FRAME_GRACE_MS) {
-        applyFilterInsideBox(lastSeenFrame.box);
         drawLiveFrameOverlay(lastSeenFrame.box);
       }
       statusText.innerHTML = isStripFull()
@@ -1409,7 +1395,6 @@ function processResults(result) {
       const frameBox = computeHandFrame(indexA, indexB);
 
       if (frameBox.width > 4 && frameBox.height > 4) {
-        applyFilterInsideBox(frameBox);
         drawLiveFrameOverlay(frameBox);
         lastSeenFrame.box = frameBox;
         lastSeenFrame.at = performance.now();
@@ -1437,7 +1422,6 @@ function processResults(result) {
       freezeGate.holding = false;
       const sinceLast = performance.now() - lastSeenFrame.at;
       if (lastSeenFrame.box && sinceLast < FRAME_GRACE_MS) {
-        applyFilterInsideBox(lastSeenFrame.box);
         drawLiveFrameOverlay(lastSeenFrame.box);
         statusText.innerHTML = '<i class="ph ph-hand"></i> Tangan terdeteksi';
       } else {
