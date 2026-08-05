@@ -2,26 +2,26 @@
    PuzzleCam — Modern Fullscreen Dark UI
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
 
 :root {
   --bg-dark: #0a0c10;
   --bg-glass: rgba(12, 14, 20, 0.72);
   --bg-glass-strong: rgba(12, 14, 20, 0.88);
   --border-glass: rgba(255, 255, 255, 0.08);
-  --border-accent: rgba(245, 197, 24, 0.35);
+  --border-accent: rgba(0, 118, 255, 0.45);
 
   --text-primary: #f0f0f0;
   --text-muted: #8b8fa3;
   --text-dim: #555a6e;
 
-  --accent-gold: #f5c518;
-  --accent-green: #5fae6e;
+  --accent-gold: #0076ff;
+  --accent-green: #10b981;
   --accent-red: #e0533d;
-  --accent-blue: #3b82f6;
+  --accent-blue: #0076ff;
 
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-sans: 'Plus Jakarta Sans', 'Outfit', -apple-system, sans-serif;
+  --font-mono: 'Plus Jakarta Sans', 'Outfit', sans-serif;
 
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -30,6 +30,23 @@
 
   --blur: 14px;
   --blur-strong: 24px;
+}
+
+[data-theme="light"] {
+  --bg-dark: #f8fafc;
+  --bg-glass: rgba(255, 255, 255, 0.85);
+  --bg-glass-strong: rgba(255, 255, 255, 0.95);
+  --border-glass: rgba(0, 0, 0, 0.1);
+  --border-accent: rgba(0, 102, 255, 0.45);
+
+  --text-primary: #0f172a;
+  --text-muted: #475569;
+  --text-dim: #94a3b8;
+
+  --accent-gold: #0066ff;
+  --accent-green: #059669;
+  --accent-red: #dc2626;
+  --accent-blue: #0066ff;
 }
 
 *, *::before, *::after {
@@ -46,22 +63,72 @@ html, body {
   background: var(--bg-dark);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* ======================== Top Navbar ======================== */
+
+.navbar {
+  width: 100vw;
+  height: 60px;
+  background: var(--bg-glass-strong);
+  backdrop-filter: blur(var(--blur-strong));
+  -webkit-backdrop-filter: blur(var(--blur-strong));
+  border-bottom: 1px solid var(--border-glass);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  z-index: 200;
+  flex-shrink: 0;
+  overflow: visible;
+  position: relative;
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+.nav-left, .nav-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: relative;
+  width: 420px;
+  flex-shrink: 0;
+}
+
+.nav-right {
+  justify-content: flex-end;
+}
+
+.nav-center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  height: 100%;
 }
 
 /* ======================== Layout ======================== */
 
 #app {
   display: flex;
+  flex-direction: row;
   width: 100vw;
-  height: 100vh;
+  height: calc(100vh - 60px);
   overflow: hidden;
+  background: var(--bg-dark);
+  transition: background 0.3s ease;
 }
 
 #stage {
   position: relative;
   flex: 1;
+  height: 100%;
   overflow: hidden;
   background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 #webcam {
@@ -88,8 +155,8 @@ html, body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
-  background: linear-gradient(180deg, rgba(0,0,0,0.55) 0%, transparent 100%);
+  padding: 18px 24px;
+  background: linear-gradient(180deg, rgba(10, 12, 16, 0.75) 0%, transparent 100%);
   pointer-events: none;
   z-index: 5;
 }
@@ -101,7 +168,7 @@ html, body {
 .hud-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .brand {
@@ -111,16 +178,32 @@ html, body {
   user-select: none;
 }
 
+.brand-logo {
+  height: 20px;
+  max-height: 24px;
+  width: auto;
+  object-fit: contain;
+}
+
+.brand-divider {
+  width: 1px;
+  height: 18px;
+  background: var(--text-dim);
+  opacity: 0.35;
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
 .brand i {
   font-size: 1.4rem;
   color: var(--accent-gold);
 }
 
 .brand-name {
-  font-family: var(--font-mono);
-  font-size: 1.15rem;
-  font-weight: 700;
-  letter-spacing: 2px;
+  font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: 1.5px;
   color: var(--text-primary);
 }
 
@@ -129,7 +212,7 @@ html, body {
 }
 
 .brand-sub {
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   color: var(--text-dim);
   letter-spacing: 0.5px;
   margin-left: 4px;
@@ -138,16 +221,26 @@ html, body {
 .status-pill {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   background: var(--bg-glass);
   backdrop-filter: blur(var(--blur));
   -webkit-backdrop-filter: blur(var(--blur));
   border: 1px solid var(--border-glass);
-  padding: 7px 16px;
+  padding: 6px 18px;
   border-radius: var(--radius-pill);
-  font-size: 1rem;
+  font-size: 0.88rem;
   color: var(--text-muted);
+  white-space: nowrap;
+  width: 360px;
+  flex-shrink: 0;
   transition: all 0.3s ease;
+}
+
+#statusText {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .status-dot {
@@ -223,7 +316,6 @@ html, body {
 
 .filter-control {
   position: absolute;
-  top: 16px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -235,7 +327,7 @@ html, body {
   border: 1px solid var(--border-glass);
   padding: 6px 14px;
   border-radius: var(--radius-pill);
-  z-index: 5;
+  z-index: 10;
 }
 
 .filter-control i {
@@ -323,38 +415,27 @@ html, body {
   color: var(--text-muted);
 }
 
-/* ======================== Instruction Toast ======================== */
+/* ======================== Instruction Toast (Bottom of Stage) ======================== */
 
 .instruction-toast {
   position: absolute;
-  bottom: 70px;
+  bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   align-items: center;
   gap: 10px;
-  background: var(--bg-glass);
-  backdrop-filter: blur(var(--blur));
-  -webkit-backdrop-filter: blur(var(--blur));
+  background: var(--bg-glass-strong);
+  backdrop-filter: blur(var(--blur-strong));
+  -webkit-backdrop-filter: blur(var(--blur-strong));
   border: 1px solid var(--border-glass);
-  padding: 10px 22px;
+  padding: 10px 24px;
   border-radius: var(--radius-pill);
   font-size: 1rem;
-  color: var(--text-muted);
-  z-index: 6;
-  transition: opacity 0.35s ease, transform 0.35s ease;
-  white-space: nowrap;
-}
-
-.instruction-toast.hidden {
-  opacity: 0;
-  pointer-events: none;
-  transform: translateX(-50%) translateY(12px);
-}
-
-.instruction-toast i {
-  font-size: 1.1rem;
-  color: var(--accent-gold);
+  color: var(--text-primary);
+  z-index: 10;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s ease;
 }
 
 /* ======================== Buttons ======================== */
@@ -403,32 +484,112 @@ html, body {
 
 .btn-reset {
   width: 100%;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-glass);
   color: var(--text-dim);
+  opacity: 0.45;
+  cursor: not-allowed;
+  transition: all 0.25s ease;
+}
+
+.btn-reset:not(:disabled) {
+  background: rgba(224, 83, 61, 0.12);
+  border-color: rgba(224, 83, 61, 0.35);
+  color: #ef4444;
+  opacity: 1;
+  cursor: pointer;
 }
 
 .btn-reset:hover:not(:disabled) {
-  color: var(--text-muted);
-  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(224, 83, 61, 0.22);
+  border-color: rgba(224, 83, 61, 0.6);
+  color: #f87171;
+  box-shadow: 0 4px 16px rgba(224, 83, 61, 0.2);
 }
 
-.hidden {
-  display: none !important;
+/* ======================== Timer Display ======================== */
+
+.timer-badge {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-glass-strong);
+  backdrop-filter: blur(var(--blur-strong));
+  -webkit-backdrop-filter: blur(var(--blur-strong));
+  border: 1px solid var(--border-glass);
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-8px);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
-/* ======================== Gallery Sidebar ======================== */
+.timer-badge.visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.timer-badge.warning {
+  color: var(--accent-gold);
+  border-color: var(--border-accent);
+  animation: pulse-timer 1s ease-in-out infinite;
+}
+
+.timer-badge.danger {
+  color: var(--accent-red);
+  border-color: rgba(224, 83, 61, 0.4);
+  animation: pulse-timer 0.5s ease-in-out infinite;
+}
+
+.progress-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  border: 1px solid var(--border-glass);
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s ease;
+}
+
+.progress-badge.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ======================== Vertical Gallery Sidebar ======================== */
 
 .gallery-sidebar {
-  width: 260px;
+  width: 280px;
+  height: 100%;
   background: var(--bg-glass-strong);
   backdrop-filter: blur(var(--blur-strong));
   -webkit-backdrop-filter: blur(var(--blur-strong));
   border-left: 1px solid var(--border-glass);
   display: flex;
   flex-direction: column;
-  padding: 16px;
-  gap: 12px;
+  padding: 20px 16px;
+  gap: 14px;
   flex-shrink: 0;
   z-index: 10;
   transition: all 0.3s ease;
@@ -440,10 +601,12 @@ html, body {
 
 .gallery-header {
   display: flex;
+  flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 10px;
+  padding-bottom: 12px;
   border-bottom: 1px solid var(--border-glass);
+  border-right: none;
 }
 
 .gallery-title {
@@ -474,9 +637,12 @@ html, body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
   overflow-y: auto;
-  min-height: 100px;
+  overflow-x: hidden;
+  padding-right: 4px;
 }
 
 .gallery-strip::-webkit-scrollbar {
@@ -484,7 +650,7 @@ html, body {
 }
 
 .gallery-strip::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.15);
   border-radius: 4px;
 }
 
@@ -493,19 +659,19 @@ html, body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 160px;
+  height: 180px;
   text-align: center;
   color: var(--text-dim);
   gap: 10px;
 }
 
 .gallery-empty i {
-  font-size: 2.5rem;
-  opacity: 0.3;
+  font-size: 2.2rem;
+  opacity: 0.35;
 }
 
 .gallery-empty p {
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   line-height: 1.4;
   max-width: 180px;
 }
@@ -513,25 +679,28 @@ html, body {
 .print {
   background: #fff;
   padding: 6px 6px 10px;
-  border-radius: 3px;
+  border-radius: 4px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 5px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  width: 100%;
+  height: auto;
 }
 
 .print canvas {
   width: 100%;
+  height: auto;
   display: block;
   border-radius: 2px;
 }
 
 .print-label {
   font-family: var(--font-mono);
-  font-size: 0.68rem;
-  color: #999;
-  letter-spacing: 1px;
+  font-size: 0.65rem;
+  color: #888;
+  letter-spacing: 0.5px;
 }
 
 .strip-complete {
@@ -540,10 +709,10 @@ html, body {
   justify-content: center;
   gap: 6px;
   padding: 8px;
-  background: rgba(95, 174, 110, 0.1);
-  border: 1px solid rgba(95, 174, 110, 0.3);
+  background: rgba(95, 174, 110, 0.15);
+  border: 1px solid rgba(95, 174, 110, 0.35);
   border-radius: var(--radius-md);
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   color: var(--accent-green);
   opacity: 0;
   transition: opacity 0.3s ease;
@@ -556,9 +725,17 @@ html, body {
 .gallery-actions {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   border-top: 1px solid var(--border-glass);
-  padding-top: 10px;
+  border-left: none;
+  padding-top: 12px;
+  padding-left: 0;
+}
+
+.gallery-actions .btn {
+  width: 100%;
+  height: 42px;
+  font-size: 0.9rem;
 }
 
 /* ======================== Settings Panel ======================== */
@@ -586,24 +763,28 @@ html, body {
 }
 
 .settings-panel {
-  position: absolute;
-  top: 64px;
+  position: fixed;
+  top: 68px;
   right: 24px;
   background: var(--bg-glass-strong);
   backdrop-filter: blur(var(--blur-strong));
   -webkit-backdrop-filter: blur(var(--blur-strong));
-  border: 1px solid var(--border-glass);
+  border: 1px solid var(--border-accent);
   border-radius: var(--radius-lg);
   padding: 20px;
-  z-index: 60;
-  min-width: 240px;
+  z-index: 99999;
+  min-width: 260px;
+  /* Use visibility + opacity for animatable show/hide, NOT display:none */
+  visibility: hidden;
   opacity: 0;
   pointer-events: none;
   transform: translateY(-8px);
-  transition: all 0.25s ease;
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7);
 }
 
 .settings-panel.open {
+  visibility: visible;
   opacity: 1;
   pointer-events: auto;
   transform: translateY(0);
@@ -629,7 +810,7 @@ html, body {
   gap: 4px;
 }
 
-.settings-group label {
+.settings-group-label {
   font-size: 0.78rem;
   font-weight: 600;
   color: var(--text-muted);
@@ -697,6 +878,30 @@ html, body {
   cursor: not-allowed;
 }
 
+.settings-select {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  outline: none;
+  cursor: pointer;
+  margin-top: 4px;
+  transition: border-color 0.2s ease;
+}
+
+.settings-select:hover, .settings-select:focus {
+  border-color: var(--accent-blue);
+}
+
+.settings-select option {
+  background: var(--bg-dark);
+  color: var(--text-primary);
+}
+
 .settings-notice {
   font-size: 0.75rem;
   color: var(--accent-gold);
@@ -708,98 +913,48 @@ html, body {
   gap: 6px;
 }
 
-/* ======================== Timer Display ======================== */
-
-.timer-badge {
-  position: absolute;
-  top: 60px;
-  right: 24px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--bg-glass);
-  backdrop-filter: blur(var(--blur));
-  -webkit-backdrop-filter: blur(var(--blur));
-  border: 1px solid var(--border-glass);
-  padding: 8px 18px;
-  border-radius: var(--radius-pill);
-  font-family: var(--font-mono);
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  z-index: 6;
-  opacity: 0;
-  pointer-events: none;
-  transition: all 0.3s ease;
-}
-
-.timer-badge.visible {
-  opacity: 1;
-}
-
-.timer-badge.warning {
-  color: var(--accent-gold);
-  border-color: var(--border-accent);
-  animation: pulse-timer 1s ease-in-out infinite;
-}
-
-.timer-badge.danger {
-  color: var(--accent-red);
-  border-color: rgba(224, 83, 61, 0.4);
-  animation: pulse-timer 0.5s ease-in-out infinite;
-}
-
-.timer-badge i {
-  font-size: 1.1rem;
-}
-
-@keyframes pulse-timer {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
-}
-
-/* ======================== Canvas Popup Overlays ======================== */
+/* ======================== Canvas Fullscreen Popups ======================== */
 
 .canvas-popup {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: var(--bg-glass-strong);
-  backdrop-filter: blur(var(--blur-strong));
-  -webkit-backdrop-filter: blur(var(--blur-strong));
-  border: 1px solid var(--border-glass);
-  border-radius: var(--radius-lg);
-  padding: 32px 48px;
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100%; height: 100%;
+  background: rgba(10, 12, 16, 0.88);
+  border: none;
+  border-radius: 0;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
-  z-index: 8;
+  z-index: 30;
   opacity: 0;
   pointer-events: none;
-  transform: translate(-50%, -50%) scale(0.9);
-  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .canvas-popup.visible {
   opacity: 1;
   pointer-events: auto;
-  transform: translate(-50%, -50%) scale(1);
 }
 
 .canvas-popup .popup-icon {
-  font-size: 3rem;
-  margin-bottom: 12px;
+  font-size: 4rem;
+  margin-bottom: 14px;
 }
 
 .canvas-popup .popup-title {
-  font-size: 1.6rem;
-  font-weight: 800;
-  margin-bottom: 6px;
+  font-size: 2rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
 }
 
 .canvas-popup .popup-sub {
-  font-size: 1rem;
+  font-size: 1.15rem;
   color: var(--text-muted);
-  margin-bottom: 16px;
+  margin-bottom: 24px;
 }
 
 .popup-solved .popup-icon { color: var(--accent-green); }

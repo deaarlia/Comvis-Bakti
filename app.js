@@ -32,7 +32,7 @@ const FRAME_PADDING       = 28;
 const FREEZE_HOLD_MS      = 250;
 const COUNTDOWN_SECONDS   = 3;
 const FIST_HOLD_FRAMES    = 12;
-const SNAP_DISTANCE_RATIO = 0.45;
+const SNAP_DISTANCE_RATIO = 0.80;
 const GRID                = 3;
 const LOAD_TIMEOUT_MS     = 20000;
 const FRAME_GRACE_MS      = 450;
@@ -137,6 +137,7 @@ async function init() {
     statusDot.className = "status-dot live";
     statusText.textContent = "kamera aktif";
     showInstruction("Tunjukkan 2 tangan & cubit (pinch) untuk framing foto");
+    updateStripDownload();
 
     requestAnimationFrame(renderLoop);
   } catch (err) {
@@ -187,12 +188,23 @@ async function initHandLandmarker(vision) {
   );
 }
 
-async function initWebcam() {
+let selectedDeviceId = null;
+
+async function initWebcam(deviceId = null) {
   if (!navigator.mediaDevices?.getUserMedia) {
     throw new Error("Browser tidak mendukung getUserMedia.");
   }
+
+  if (videoEl.srcObject) {
+    videoEl.srcObject.getTracks().forEach(track => track.stop());
+  }
+
+  const videoConstraints = deviceId
+    ? { deviceId: { exact: deviceId } }
+    : { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" };
+
   const stream = await navigator.mediaDevices.getUserMedia({
-    video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
+    video: videoConstraints,
     audio: false,
   });
   videoEl.srcObject = stream;
@@ -204,6 +216,40 @@ async function initWebcam() {
   canvas.width = videoEl.videoWidth;
   canvas.height = videoEl.videoHeight;
   fitCanvasToWindow();
+
+  await populateCameraList();
+}
+
+async function populateCameraList() {
+  const cameraSelect = document.getElementById("cameraSelect");
+  if (!cameraSelect || !navigator.mediaDevices?.enumerateDevices) return;
+
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const videoDevices = devices.filter(d => d.kind === "videoinput");
+
+    const currentTrack = videoEl.srcObject?.getVideoTracks()[0];
+    const activeDeviceId = currentTrack?.getSettings()?.deviceId;
+
+    cameraSelect.innerHTML = "";
+
+    if (videoDevices.length === 0) {
+      cameraSelect.innerHTML = '<option value="">Kamera tidak ditemukan</option>';
+      return;
+    }
+
+    videoDevices.forEach((device, index) => {
+      const option = document.createElement("option");
+      option.value = device.deviceId;
+      option.textContent = device.label || `Kamera ${index + 1}`;
+      if (device.deviceId === activeDeviceId || (selectedDeviceId && device.deviceId === selectedDeviceId)) {
+        option.selected = true;
+      }
+      cameraSelect.appendChild(option);
+    });
+  } catch (err) {
+    console.warn("[NeoPuzzle] Gagal memuat daftar kamera:", err);
+  }
 }
 
 function fitCanvasToWindow() {
@@ -294,20 +340,38 @@ function computeHandFrame(indexTipA, indexTipB) {
 function applyFilter(imageData, filterType) {
   if (filterType === "color") return imageData;
   const d = imageData.data;
-  for (let i = 0; i < d.length; i += 4) {
+  const len = d.length;
+
+  for (let i = 0; i < len; i += 4) {
     const r = d[i], g = d[i+1], b = d[i+2];
-    if (filterType === "bw") {
-      let gray = 0.299 * r + 0.587 * g + 0.114 * b;
-      gray = Math.min(255, Math.max(0, (gray - 128) * 1.3 + 128 + 10));
-      d[i] = d[i+1] = d[i+2] = gray;
-    } else if (filterType === "sepia") {
-      d[i]   = Math.min(255, r * 0.393 + g * 0.769 + b * 0.189);
-      d[i+1] = Math.min(255, r * 0.349 + g * 0.686 + b * 0.168);
-      d[i+2] = Math.min(255, r * 0.272 + g * 0.534 + b * 0.131);
-    } else if (filterType === "vivid") {
-      d[i]   = Math.min(255, Math.max(0, (r - 128) * 1.35 + 128));
-      d[i+1] = Math.min(255, Math.max(0, (g - 128) * 1.35 + 128));
-      d[i+2] = Math.min(255, Math.max(0, (b - 128) * 1.35 + 128));
+
+    if (filterType === "vintage_warm") {
+      // Warm Film (Portra Creamy Warmth)
+      const nr = r * 1.15 + 10;
+      const ng = g * 1.05 + 6;
+      const nb = b * 0.88 + 4;
+      d[i]   = Math.min(255, Math.max(0, nr));
+      d[i+1] = Math.min(255, Math.max(0, ng));
+      d[i+2] = Math.min(255, Math.max(0, nb));
+    }
+    else if (filterType === "mono_chrome") {
+      // Noir Mono (Cinematic High Contrast B&W)
+      const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+      const highContrast = (gray - 128) * 1.4 + 128;
+      const clamped = Math.min(255, Math.max(0, highContrast));
+      d[i] = d[i+1] = d[i+2] = clamped;
+    }
+    else if (filterType === "vintage_mono") {
+      // Vintage Noir (Cool Espresso Brown / Neutral Taupe Sepia)
+      const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+      const contrastGray = (gray - 128) * 1.28 + 128;
+      const cG = Math.min(255, Math.max(0, contrastGray));
+      const nr = cG * 1.12 + 14;  // Red base for subtle brown tone
+      const ng = cG * 0.98 + 6;   // Subdued green (removes yellow cast)
+      const nb = cG * 0.92 + 8;   // Cool blue balance (prevents golden/yellow warmth)
+      d[i]   = Math.min(255, Math.max(0, nr));
+      d[i+1] = Math.min(255, Math.max(0, ng));
+      d[i+2] = Math.min(255, Math.max(0, nb));
     }
   }
   return imageData;
@@ -350,8 +414,8 @@ function drawCountdownOverlay(box) {
   applyFilterInsideBox(box);
 
   ctx.save();
-  // Yellow frame
-  ctx.strokeStyle = "#f5c518";
+  // Neo Blue frame
+  ctx.strokeStyle = "#0076ff";
   ctx.lineWidth = 3;
   ctx.strokeRect(box.x, box.y, box.width, box.height);
 
@@ -364,8 +428,8 @@ function drawCountdownOverlay(box) {
   const cx = box.x + box.width / 2;
   const cy = box.y + box.height / 2;
   const fontSize = Math.max(48, Math.min(box.width, box.height) * 0.4);
-  ctx.font = `800 ${fontSize}px 'Inter', sans-serif`;
-  ctx.fillStyle = "#f5c518";
+  ctx.font = `800 ${fontSize}px 'Plus Jakarta Sans', sans-serif`;
+  ctx.fillStyle = "#0076ff";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText(String(n), cx, cy);
@@ -473,7 +537,7 @@ function createPuzzlePieces(cropCanvas, box) {
   startPuzzleTimer();
   updateProgressBadge();
 
-  showInstruction("Cubit (pinch) 1 tangan untuk geser kepingan • Kepal tangan untuk simpan/reset");
+  showInstruction("• Cubit (pinch) 1 tangan untuk geser kepingan");
 }
 
 function shuffle(arr) {
@@ -555,10 +619,8 @@ function displaceCellOccupant(piece, targetRow, targetCol, box, tileW, tileH) {
     targetSlot = { row: occupant.row, col: occupant.col };
   }
 
-  const jitterX = (Math.random() - 0.5) * tileW * 0.5;
-  const jitterY = (Math.random() - 0.5) * tileH * 0.5;
-  const targetX = box.x + targetSlot.col * tileW + jitterX;
-  const targetY = box.y + targetSlot.row * tileH + jitterY;
+  const targetX = box.x + targetSlot.col * tileW;
+  const targetY = box.y + targetSlot.row * tileH;
 
   animateDisplacement(occupant, targetX, targetY);
 }
@@ -633,13 +695,16 @@ function handleDragForHand(handLabel, pinching, indexPx) {
       if (isNearOwnCell(piece, puzzle.boardBox, puzzle.tileW, puzzle.tileH)) {
         snapPieceToCell(piece, puzzle.boardBox, puzzle.tileW, puzzle.tileH);
       } else {
-        clampPieceToBoard(piece);
-        // Displace whatever is in the dropped cell
         const box = puzzle.boardBox;
         const cx = piece.x + piece.w / 2;
         const cy = piece.y + piece.h / 2;
         const dropCol = Math.min(GRID - 1, Math.max(0, Math.floor((cx - box.x) / puzzle.tileW)));
         const dropRow = Math.min(GRID - 1, Math.max(0, Math.floor((cy - box.y) / puzzle.tileH)));
+
+        // Snap edge-to-edge directly into dropped cell slot
+        piece.x = box.x + dropCol * puzzle.tileW;
+        piece.y = box.y + dropRow * puzzle.tileH;
+
         displaceCellOccupant(piece, dropRow, dropCol, box, puzzle.tileW, puzzle.tileH);
       }
       drag.activeHand = null;
@@ -660,12 +725,18 @@ function drawVideoFrame() {
   ctx.scale(-1, 1);
   ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
   ctx.restore();
+
+  if (activeFilter !== "color" && appState === "tracking") {
+    const fullImg = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    applyFilter(fullImg, activeFilter);
+    ctx.putImageData(fullImg, 0, 0);
+  }
 }
 
 function drawLiveFrameOverlay(box) {
   ctx.save();
-  // Gold frame border
-  ctx.strokeStyle = "#f5c518";
+  // Neo Blue frame border
+  ctx.strokeStyle = "#0076ff";
   ctx.lineWidth = 3;
   ctx.strokeRect(box.x, box.y, box.width, box.height);
 
@@ -688,8 +759,8 @@ function drawLiveFrameOverlay(box) {
 
   // Dimension label
   const ar = (box.width / box.height).toFixed(2);
-  ctx.font = "600 12px 'JetBrains Mono', monospace";
-  ctx.fillStyle = "#f5c518";
+  ctx.font = "600 12px 'Plus Jakarta Sans', sans-serif";
+  ctx.fillStyle = "#0076ff";
   ctx.textAlign = "left";
   ctx.fillText(`${Math.round(box.width)}×${Math.round(box.height)}  AR ${ar}`, box.x + 4, Math.max(14, box.y - 8));
 
@@ -730,7 +801,7 @@ function drawBoardAndPieces() {
       ctx.shadowBlur = 14;
     }
     ctx.drawImage(piece.canvas, piece.x, piece.y, piece.w, piece.h);
-    ctx.strokeStyle = piece.placed ? "#5fae6e" : "rgba(234, 229, 214, 0.5)";
+    ctx.strokeStyle = piece.placed ? "#10b981" : "rgba(234, 229, 214, 0.5)";
     ctx.lineWidth = piece.dragging ? 3 : 1.5;
     ctx.strokeRect(piece.x, piece.y, piece.w, piece.h);
 
@@ -739,7 +810,7 @@ function drawBoardAndPieces() {
       const badgeR = Math.max(8, Math.min(piece.w, piece.h) * 0.09);
       const bx = piece.x + piece.w - badgeR - 4;
       const by = piece.y + badgeR + 4;
-      ctx.fillStyle = "rgba(95, 174, 110, 0.85)";
+      ctx.fillStyle = "rgba(16, 185, 129, 0.85)";
       ctx.beginPath();
       ctx.arc(bx, by, badgeR, 0, Math.PI * 2);
       ctx.fill();
@@ -757,7 +828,7 @@ function drawBoardAndPieces() {
 
   // Board border
   ctx.save();
-  ctx.strokeStyle = puzzle.solved ? "#5fae6e" : "#f5c518";
+  ctx.strokeStyle = puzzle.solved ? "#10b981" : "#0076ff";
   ctx.lineWidth = 3;
   ctx.strokeRect(box.x, box.y, box.width, box.height);
   ctx.restore();
@@ -927,12 +998,41 @@ function handleFistReset() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   GALLERY
+   GALLERY & 5:4 STRIP CROPPING
    ═══════════════════════════════════════════════════════════════════════ */
+
+function cropCanvasToRatio(srcCanvas, aspectW = 5, aspectH = 4) {
+  const targetAspect = aspectW / aspectH;
+  const srcW = srcCanvas.width;
+  const srcH = srcCanvas.height;
+  const srcAspect = srcW / srcH;
+
+  let cropW, cropH, cropX, cropY;
+
+  if (srcAspect > targetAspect) {
+    cropH = srcH;
+    cropW = Math.round(srcH * targetAspect);
+    cropX = Math.round((srcW - cropW) / 2);
+    cropY = 0;
+  } else {
+    cropW = srcW;
+    cropH = Math.round(srcW / targetAspect);
+    cropX = 0;
+    cropY = Math.round((srcH - cropH) / 2);
+  }
+
+  const outCanvas = document.createElement("canvas");
+  outCanvas.width = cropW;
+  outCanvas.height = cropH;
+  const outCtx = outCanvas.getContext("2d");
+  outCtx.drawImage(srcCanvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+  return outCanvas;
+}
 
 function addToGallery(snapshotCanvas) {
   if (galleryEntries.length >= STRIP_MAX_PHOTOS) return;
 
+  // Save original uncropped snapshot canvas (exact pinched frame ratio)
   galleryEntries.push({ canvas: snapshotCanvas, time: Date.now() });
   renderGalleryThumb(snapshotCanvas, galleryEntries.length);
   galleryCount.textContent = `${galleryEntries.length} / ${STRIP_MAX_PHOTOS}`;
@@ -958,7 +1058,7 @@ function renderGalleryThumb(snapshotCanvas, index) {
 
   const label = document.createElement("div");
   label.className = "print-label";
-  label.textContent = `#${String(index).padStart(2, "0")} — NEOPUZZLE`;
+  label.textContent = `#${String(index).padStart(2, "0")} | NeoPuzzle`;
 
   print.appendChild(thumbCanvas);
   print.appendChild(label);
@@ -974,7 +1074,12 @@ function hideStripComplete() {
 }
 
 function updateStripDownload() {
-  if (downloadStripBtn) downloadStripBtn.disabled = galleryEntries.length === 0;
+  const hasPhotos = galleryEntries.length > 0;
+  const isPuzzleActive = appState === "puzzle" || puzzle.boardBox !== null;
+  const canReset = hasPhotos || isPuzzleActive;
+
+  if (downloadStripBtn) downloadStripBtn.disabled = !hasPhotos;
+  if (resetAllBtn) resetAllBtn.disabled = !canReset;
 }
 
 function isStripFull() {
@@ -984,11 +1089,13 @@ function isStripFull() {
 function downloadPhotoStrip() {
   if (galleryEntries.length === 0) return;
 
-  const entries = galleryEntries;
-  const targetW = entries[0].canvas.width;
-  const scaledHeights = entries.map(e => Math.round(e.canvas.height * (targetW / e.canvas.width)));
+  // Crop each entry to 5:4 aspect ratio for the downloaded strip
+  const cropped54Entries = galleryEntries.map(e => cropCanvasToRatio(e.canvas, 5, 4));
+
+  const targetW = cropped54Entries[0].width;
+  const scaledHeights = cropped54Entries.map(c => Math.round(c.height * (targetW / c.width)));
   const border = 24, gap = 16;
-  const totalH = border * 2 + scaledHeights.reduce((s, h) => s + h, 0) + gap * (entries.length - 1);
+  const totalH = border * 2 + scaledHeights.reduce((s, h) => s + h, 0) + gap * (cropped54Entries.length - 1);
   const totalW = targetW + border * 2;
 
   const stripCanvas = document.createElement("canvas");
@@ -996,13 +1103,13 @@ function downloadPhotoStrip() {
   stripCanvas.height = totalH;
   const sCtx = stripCanvas.getContext("2d");
 
-  sCtx.fillStyle = "#ffffff";
+  sCtx.fillStyle = document.documentElement.getAttribute("data-theme") === "light" ? "#f8fafc" : "#0a0c10";
   sCtx.fillRect(0, 0, totalW, totalH);
 
   let cursorY = border;
-  entries.forEach((e, i) => {
-    const h = scaledHeights[i];
-    sCtx.drawImage(e.canvas, border, cursorY, targetW, h);
+  cropped54Entries.forEach((cCanvas) => {
+    const h = Math.round(cCanvas.height * (targetW / cCanvas.width));
+    sCtx.drawImage(cCanvas, border, cursorY, targetW, h);
     cursorY += h + gap;
   });
 
@@ -1116,6 +1223,8 @@ function startPuzzleTimer() {
   timerExpired = false;
   if (timerLimitSec > 0) {
     showTimerBadge();
+  } else {
+    hideTimerBadge();
   }
 }
 
@@ -1179,21 +1288,31 @@ function renderLoop() {
 }
 
 function updateSettingsAvailability() {
+  const isPuzzleActive = appState === "countdown" || appState === "puzzle" || appState === "shattering";
   const hasPhotos = galleryEntries.length > 0;
-  const isSessionActive = appState !== "tracking";
-  const disabled = hasPhotos || isSessionActive;
+  const timerDisabled = isPuzzleActive || hasPhotos;
 
+  // Timer limit radios lock only during active photo session
   document.querySelectorAll('input[name="timerLimit"]').forEach((radio) => {
-    radio.disabled = disabled;
+    radio.disabled = timerDisabled;
     const label = radio.closest(".radio-option");
     if (label) {
-      label.classList.toggle("disabled", disabled);
+      label.classList.toggle("disabled", timerDisabled);
+    }
+  });
+
+  // Theme radios are ALWAYS enabled
+  document.querySelectorAll('input[name="themeMode"]').forEach((radio) => {
+    radio.disabled = false;
+    const label = radio.closest(".radio-option");
+    if (label) {
+      label.classList.remove("disabled");
     }
   });
 
   const settingsNotice = document.getElementById("settingsNotice");
   if (settingsNotice) {
-    settingsNotice.style.display = disabled ? "flex" : "none";
+    settingsNotice.style.display = timerDisabled ? "flex" : "none";
   }
 }
 
@@ -1232,7 +1351,7 @@ function processResults(result) {
         drawLiveFrameOverlay(lastSeenFrame.box);
       }
       statusText.innerHTML = isStripFull()
-        ? '<i class="ph ph-film-strip"></i> Strip lengkap — unduh atau reset'
+        ? '<i class="ph ph-film-strip"></i> Strip lengkap (unduh atau reset)'
         : '<i class="ph ph-magnifying-glass"></i> Mencari tangan…';
       return;
     }
@@ -1279,7 +1398,7 @@ function processResults(result) {
   /* ── TRACKING STATE ── */
   if (appState === "tracking") {
     if (isStripFull()) {
-      statusText.innerHTML = '<i class="ph ph-film-strip"></i> Strip lengkap — unduh atau reset';
+      statusText.innerHTML = '<i class="ph ph-film-strip"></i> Strip lengkap (unduh atau reset)';
       return;
     }
 
@@ -1312,7 +1431,7 @@ function processResults(result) {
         }
       } else {
         freezeGate.holding = false;
-        statusText.innerHTML = '<i class="ph ph-hand"></i> Tangan terdeteksi — cubit kedua tangan untuk framing';
+        statusText.innerHTML = '<i class="ph ph-hand"></i> Tangan terdeteksi (cubit 2 tangan untuk framing)';
       }
     } else {
       freezeGate.holding = false;
@@ -1322,7 +1441,7 @@ function processResults(result) {
         drawLiveFrameOverlay(lastSeenFrame.box);
         statusText.innerHTML = '<i class="ph ph-hand"></i> Tangan terdeteksi';
       } else {
-        statusText.innerHTML = '<i class="ph ph-hand"></i> Tangan terdeteksi — butuh 2 tangan';
+        statusText.innerHTML = '<i class="ph ph-hand"></i> Tangan terdeteksi (butuh 2 tangan)';
       }
     }
     return;
@@ -1373,16 +1492,32 @@ filterSelect.addEventListener("change", (e) => {
 downloadStripBtn.addEventListener("click", downloadPhotoStrip);
 resetAllBtn.addEventListener("click", resetEverything);
 
-// Settings panel toggle
-settingsBtn.addEventListener("click", () => {
+// Settings panel toggle function (called from inline onclick on #settingsBtn)
+window.toggleSettings = function(e) {
+  if (e) {
+    if (e.stopPropagation) e.stopPropagation();
+  }
   updateSettingsAvailability();
-  settingsPanel.classList.toggle("open");
-});
+  const panel = document.getElementById("settingsPanel");
+  if (panel) {
+    panel.classList.toggle("open");
+  }
+};
+
+// Prevent clicks inside the panel from closing it
+const settingsPanelEl = document.getElementById("settingsPanel");
+if (settingsPanelEl) {
+  settingsPanelEl.addEventListener("click", (e) => {
+    e.stopPropagation();
+  });
+}
 
 // Close settings when clicking outside
 document.addEventListener("click", (e) => {
-  if (!settingsPanel.contains(e.target) && !settingsBtn.contains(e.target)) {
-    settingsPanel.classList.remove("open");
+  const panel = document.getElementById("settingsPanel");
+  const btn = document.getElementById("settingsBtn");
+  if (panel && btn && !panel.contains(e.target) && !btn.contains(e.target)) {
+    panel.classList.remove("open");
   }
 });
 
@@ -1401,7 +1536,38 @@ document.querySelectorAll('input[name="timerLimit"]').forEach((radio) => {
   radio.addEventListener("change", (e) => {
     if (radio.disabled) return;
     timerLimitSec = parseInt(e.target.value, 10);
+    if (timerLimitSec <= 0) {
+      hideTimerBadge();
+    }
   });
 });
+
+// Theme mode radio buttons
+document.querySelectorAll('input[name="themeMode"]').forEach((radio) => {
+  radio.addEventListener("change", (e) => {
+    const theme = e.target.value;
+    document.documentElement.setAttribute("data-theme", theme);
+    const logoEl = document.getElementById("brandLogo");
+    if (logoEl) {
+      logoEl.src = theme === "light" ? "assets/logo-neo.png" : "assets/logo-neo-white.png";
+    }
+  });
+});
+
+// Camera selection dropdown
+const cameraSelectEl = document.getElementById("cameraSelect");
+if (cameraSelectEl) {
+  cameraSelectEl.addEventListener("change", async (e) => {
+    const deviceId = e.target.value;
+    if (!deviceId) return;
+    selectedDeviceId = deviceId;
+    try {
+      await initWebcam(deviceId);
+    } catch (err) {
+      console.error("[NeoPuzzle] Gagal mengganti kamera:", err);
+      showError("Gagal mengganti ke kamera terpilih.");
+    }
+  });
+}
 
 window.addEventListener("DOMContentLoaded", init);
