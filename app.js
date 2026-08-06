@@ -281,6 +281,9 @@ function fitCanvasToWindow() {
 }
 
 window.addEventListener("resize", fitCanvasToWindow);
+window.addEventListener("orientationchange", () => {
+  setTimeout(fitCanvasToWindow, 150);
+});
 
 function withTimeout(promise, ms, msg) {
   let timer;
@@ -1517,6 +1520,60 @@ filterSelect.addEventListener("change", (e) => {
 
 downloadStripBtn.addEventListener("click", downloadPhotoStrip);
 resetAllBtn.addEventListener("click", resetEverything);
+
+// Mobile touch & pointer drag support on canvas
+let pointerDragPiece = null;
+
+function getCanvasPointerCoords(e) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  return {
+    x: (clientX - rect.left) * scaleX,
+    y: (clientY - rect.top) * scaleY
+  };
+}
+
+canvas.addEventListener("pointerdown", (e) => {
+  if (appState !== "puzzle" || puzzle.solved) return;
+  const pt = getCanvasPointerCoords(e);
+  const target = findClosestTile(pt.x, pt.y);
+  if (target && !target.placed) {
+    pointerDragPiece = target;
+    target.dragging = true;
+  }
+});
+
+canvas.addEventListener("pointermove", (e) => {
+  if (!pointerDragPiece || appState !== "puzzle") return;
+  const pt = getCanvasPointerCoords(e);
+  pointerDragPiece.x = pt.x - pointerDragPiece.w / 2;
+  pointerDragPiece.y = pt.y - pointerDragPiece.h / 2;
+});
+
+const endPointerDrag = () => {
+  if (!pointerDragPiece) return;
+  const p = pointerDragPiece;
+  pointerDragPiece = null;
+  p.dragging = false;
+
+  const targetX = puzzle.boardBox.x + p.targetCol * puzzle.tileW;
+  const targetY = puzzle.boardBox.y + p.targetRow * puzzle.tileH;
+  const dist = Math.hypot(p.x - targetX, p.y - targetY);
+  const snapDist = Math.min(puzzle.tileW, puzzle.tileH) * SNAP_DISTANCE_RATIO;
+
+  if (dist <= snapDist) {
+    p.x = targetX;
+    p.y = targetY;
+    p.placed = true;
+    checkPuzzleSolved();
+  }
+};
+
+canvas.addEventListener("pointerup", endPointerDrag);
+canvas.addEventListener("pointercancel", endPointerDrag);
 
 // Settings panel toggle function (called from inline onclick on #settingsBtn)
 window.toggleSettings = function(e) {
