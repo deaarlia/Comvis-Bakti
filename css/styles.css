@@ -1,27 +1,29 @@
 /* ==========================================================================
-   PuzzleCam — Modern Fullscreen Dark UI
+   NeoPuzzle — Modern Fullscreen Dark UI Design System
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap');
 
 :root {
-  --bg-dark: #0a0c10;
-  --bg-glass: rgba(12, 14, 20, 0.72);
-  --bg-glass-strong: rgba(12, 14, 20, 0.88);
+  --bg-dark: #0a0e1a;
+  --bg-glass: rgba(13, 18, 32, 0.75);
+  --bg-glass-strong: rgba(13, 18, 32, 0.92);
   --border-glass: rgba(255, 255, 255, 0.08);
-  --border-accent: rgba(0, 118, 255, 0.45);
+  --border-accent: rgba(59, 91, 219, 0.45);
 
-  --text-primary: #f0f0f0;
-  --text-muted: #8b8fa3;
-  --text-dim: #555a6e;
+  --text-primary: #f1f5f9;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
 
-  --accent-gold: #0076ff;
+  --accent-gold: #3b5bdb;
   --accent-green: #10b981;
-  --accent-red: #e0533d;
-  --accent-blue: #0076ff;
+  --accent-red: #ef4444;
+  --accent-blue: #3b5bdb;
+  --accent-cyan: #06b6d4;
+  --accent-glow: rgba(59, 91, 219, 0.35);
 
-  --font-sans: 'Plus Jakarta Sans', 'Outfit', -apple-system, sans-serif;
-  --font-mono: 'Plus Jakarta Sans', 'Outfit', sans-serif;
+  --font-sans: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
+  --font-mono: 'Plus Jakarta Sans', 'Inter', sans-serif;
 
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -36,17 +38,46 @@
   --bg-dark: #f8fafc;
   --bg-glass: rgba(255, 255, 255, 0.85);
   --bg-glass-strong: rgba(255, 255, 255, 0.95);
-  --border-glass: rgba(0, 0, 0, 0.1);
-  --border-accent: rgba(0, 102, 255, 0.45);
+  --border-glass: rgba(15, 23, 42, 0.1);
+  --border-accent: rgba(59, 91, 219, 0.45);
 
   --text-primary: #0f172a;
   --text-muted: #475569;
   --text-dim: #94a3b8;
 
-  --accent-gold: #0066ff;
+  --accent-gold: #3b5bdb;
   --accent-green: #059669;
   --accent-red: #dc2626;
-  --accent-blue: #0066ff;
+  --accent-blue: #3b5bdb;
+  --accent-cyan: #0891b2;
+  --accent-glow: rgba(59, 91, 219, 0.25);
+}
+
+/* Light Mode Specific Overrides */
+[data-theme="light"] #app {
+  background: var(--bg-dark);
+}
+
+[data-theme="light"] .navbar {
+  background: var(--bg-glass-strong);
+  border-bottom: 1px solid var(--border-glass);
+}
+
+[data-theme="light"] .gallery-sidebar {
+  background: var(--bg-glass-strong);
+  border-left: 1px solid var(--border-glass);
+}
+
+[data-theme="light"] .gallery-header {
+  border-bottom: 1px solid var(--border-glass);
+}
+
+[data-theme="light"] .brand-divider {
+  background: rgba(15, 23, 42, 0.15);
+}
+
+[data-theme="light"] .brand-logo {
+  filter: invert(1) hue-rotate(180deg) brightness(0.2);
 }
 
 *, *::before, *::after {
@@ -69,21 +100,54 @@ html, body {
 /* ======================== Top Navbar ======================== */
 
 .navbar {
-  width: 100vw;
-  height: 60px;
+  width: 100%;
+  height: 72px;
   background: var(--bg-glass-strong);
   backdrop-filter: blur(var(--blur-strong));
   -webkit-backdrop-filter: blur(var(--blur-strong));
   border-bottom: 1px solid var(--border-glass);
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 0 24px;
   z-index: 200;
   flex-shrink: 0;
   overflow: visible;
   position: relative;
-  transition: background 0.3s ease, border-color 0.3s ease;
+  transition: background 0.3s ease, border-color 0.3s ease, height 0.35s cubic-bezier(0.16, 1, 0.3, 1), padding 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: height, padding;
+}
+
+/* Dynamic Fullscreen Mode Navbar & Layout Height */
+[data-fullscreen="true"] .navbar,
+:fullscreen .navbar,
+:-webkit-full-screen .navbar {
+  height: 90px;
+  padding: 0 32px;
+}
+
+[data-fullscreen="true"] .settings-panel,
+:fullscreen .settings-panel,
+:-webkit-full-screen .settings-panel {
+  top: 98px;
+}
+
+[data-fullscreen="true"] .brand-logo,
+:fullscreen .brand-logo,
+:-webkit-full-screen .brand-logo {
+  height: 38px;
+}
+
+[data-fullscreen="true"] .brand-name,
+:fullscreen .brand-name,
+:-webkit-full-screen .brand-name {
+  font-size: 1.25rem;
+  white-space: nowrap;
+}
+
+[data-fullscreen="true"] .brand-sub,
+:fullscreen .brand-sub,
+:-webkit-full-screen .brand-sub {
+  white-space: nowrap;
 }
 
 .nav-left, .nav-right {
@@ -91,7 +155,7 @@ html, body {
   align-items: center;
   gap: 16px;
   position: relative;
-  width: 420px;
+  width: auto;
   flex-shrink: 0;
 }
 
@@ -114,21 +178,40 @@ html, body {
   display: flex;
   flex-direction: row;
   width: 100vw;
-  height: calc(100vh - 60px);
+  height: 100vh;
   overflow: hidden;
   background: var(--bg-dark);
+  position: relative;
   transition: background 0.3s ease;
+}
+
+#mainCol {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
 }
 
 #stage {
   position: relative;
   flex: 1;
-  height: 100%;
-  overflow: hidden;
-  background: #000;
+  width: 100%;
+  height: calc(100vh - 72px);
+  overflow: visible;
+  background: var(--bg-dark);
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 24px;
+  transition: height 0.35s cubic-bezier(0.16, 1, 0.3, 1), padding 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: height, padding;
+}
+
+[data-fullscreen="true"] #stage,
+:fullscreen #stage {
+  height: calc(100vh - 90px);
+  padding: 32px 24px 64px 24px;
 }
 
 #webcam {
@@ -140,11 +223,27 @@ html, body {
   pointer-events: none;
 }
 
+.canvas-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-lg);
+  overflow: visible;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45), 0 0 0 1px var(--border-glass);
+  max-width: 100%;
+  max-height: 100%;
+  aspect-ratio: var(--canvas-aspect, 16 / 9);
+  transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1), height 0.35s cubic-bezier(0.16, 1, 0.3, 1), max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1), max-width 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: width, height, max-width, max-height;
+}
+
 #sceneCanvas {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: contain;
+  border-radius: var(--radius-lg);
 }
 
 /* ======================== HUD Top ======================== */
@@ -223,16 +322,16 @@ html, body {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: var(--bg-glass);
-  backdrop-filter: blur(var(--blur));
-  -webkit-backdrop-filter: blur(var(--blur));
+  background: var(--bg-glass-strong);
+  backdrop-filter: blur(var(--blur-strong));
+  -webkit-backdrop-filter: blur(var(--blur-strong));
   border: 1px solid var(--border-glass);
   padding: 6px 18px;
   border-radius: var(--radius-pill);
   font-size: 0.88rem;
   color: var(--text-muted);
   white-space: nowrap;
-  width: 360px;
+  width: auto;
   flex-shrink: 0;
   transition: all 0.3s ease;
 }
@@ -278,33 +377,39 @@ html, body {
 
 .progress-badge {
   position: absolute;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 16px;
+  left: 16px;
+  z-index: 50;
   display: flex;
   align-items: center;
   gap: 8px;
-  background: var(--bg-glass);
-  backdrop-filter: blur(var(--blur));
-  -webkit-backdrop-filter: blur(var(--blur));
+  background: var(--bg-glass-strong);
+  backdrop-filter: blur(var(--blur-strong));
+  -webkit-backdrop-filter: blur(var(--blur-strong));
   border: 1px solid var(--border-glass);
-  padding: 8px 20px;
+  padding: 8px 16px;
   border-radius: var(--radius-pill);
-  font-family: var(--font-mono);
-  font-size: 1rem;
-  color: var(--text-muted);
-  z-index: 5;
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
   opacity: 0;
+  visibility: hidden;
   pointer-events: none;
-  transition: opacity 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+  transform: translateY(-8px);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
 .progress-badge.visible {
   opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
 }
 
 .progress-badge.solved {
-  border-color: rgba(95, 174, 110, 0.4);
+  border-color: rgba(16, 185, 129, 0.4);
   color: var(--accent-green);
 }
 
@@ -419,7 +524,7 @@ html, body {
 
 .instruction-toast {
   position: absolute;
-  bottom: 24px;
+  bottom: 14px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -433,7 +538,7 @@ html, body {
   border-radius: var(--radius-pill);
   font-size: 1rem;
   color: var(--text-primary);
-  z-index: 10;
+  z-index: 50;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
   transition: all 0.3s ease;
 }
@@ -463,11 +568,11 @@ html, body {
 
 .btn-retry {
   background: var(--accent-gold);
-  color: #000;
+  color: #fff;
 }
 
 .btn-retry:hover:not(:disabled) {
-  background: #e6b800;
+  background: #2f4fc9;
 }
 
 .btn-download {
@@ -493,28 +598,24 @@ html, body {
 }
 
 .btn-reset:not(:disabled) {
-  background: rgba(224, 83, 61, 0.12);
-  border-color: rgba(224, 83, 61, 0.35);
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.35);
   color: #ef4444;
   opacity: 1;
   cursor: pointer;
 }
 
 .btn-reset:hover:not(:disabled) {
-  background: rgba(224, 83, 61, 0.22);
-  border-color: rgba(224, 83, 61, 0.6);
+  background: rgba(239, 68, 68, 0.22);
+  border-color: rgba(239, 68, 68, 0.6);
   color: #f87171;
-  box-shadow: 0 4px 16px rgba(224, 83, 61, 0.2);
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.2);
 }
 
 /* ======================== Timer Display ======================== */
 
 .timer-badge {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  z-index: 20;
-  display: flex;
+  display: none;
   align-items: center;
   gap: 8px;
   background: var(--bg-glass-strong);
@@ -536,6 +637,7 @@ html, body {
 }
 
 .timer-badge.visible {
+  display: flex !important;
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
@@ -550,48 +652,26 @@ html, body {
 
 .timer-badge.danger {
   color: var(--accent-red);
-  border-color: rgba(224, 83, 61, 0.4);
+  border-color: rgba(239, 68, 68, 0.4);
   animation: pulse-timer 0.5s ease-in-out infinite;
-}
-
-.progress-badge {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--bg-glass);
-  backdrop-filter: blur(var(--blur));
-  -webkit-backdrop-filter: blur(var(--blur));
-  border: 1px solid var(--border-glass);
-  padding: 6px 14px;
-  border-radius: var(--radius-pill);
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  opacity: 0;
-  pointer-events: none;
-  transition: all 0.3s ease;
-}
-
-.progress-badge.visible {
-  opacity: 1;
-  pointer-events: auto;
 }
 
 /* ======================== Vertical Gallery Sidebar ======================== */
 
 .gallery-sidebar {
-  width: 280px;
-  height: 100%;
+  position: relative;
+  width: 360px;
+  height: 100vh;
   background: var(--bg-glass-strong);
   backdrop-filter: blur(var(--blur-strong));
   -webkit-backdrop-filter: blur(var(--blur-strong));
   border-left: 1px solid var(--border-glass);
+  border-radius: 0;
   display: flex;
   flex-direction: column;
-  padding: 20px 16px;
-  gap: 14px;
+  padding: 0;
   flex-shrink: 0;
-  z-index: 10;
+  z-index: 150;
   transition: all 0.3s ease;
 }
 
@@ -600,13 +680,32 @@ html, body {
 }
 
 .gallery-header {
+  height: 72px;
+  padding: 0 20px;
   display: flex;
-  flex-direction: row;
-  justify-content: space-between;
   align-items: center;
-  padding-bottom: 12px;
+  justify-content: space-between;
+  width: 100%;
   border-bottom: 1px solid var(--border-glass);
-  border-right: none;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  transition: height 0.3s ease, padding 0.3s ease;
+}
+
+[data-fullscreen="true"] .gallery-header,
+:fullscreen .gallery-header {
+  height: 90px;
+  padding: 0 24px;
+}
+
+.gallery-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  gap: 14px;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .gallery-title {
@@ -709,8 +808,8 @@ html, body {
   justify-content: center;
   gap: 6px;
   padding: 8px;
-  background: rgba(95, 174, 110, 0.15);
-  border: 1px solid rgba(95, 174, 110, 0.35);
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
   border-radius: var(--radius-md);
   font-size: 0.82rem;
   color: var(--accent-green);
@@ -740,6 +839,7 @@ html, body {
 
 /* ======================== Settings Panel ======================== */
 
+.action-icon-btn,
 .settings-btn {
   background: var(--bg-glass);
   backdrop-filter: blur(var(--blur));
@@ -755,17 +855,96 @@ html, body {
   cursor: pointer;
   font-size: 1.15rem;
   transition: all 0.25s ease;
+  flex-shrink: 0;
 }
 
+.action-icon-btn:hover,
 .settings-btn:hover {
-  color: var(--accent-gold);
-  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--accent-blue);
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px);
+}
+
+.floating-fullscreen-btn {
+  position: absolute;
+  bottom: 14px;
+  right: 14px;
+  z-index: 25;
+  background: var(--bg-glass-strong);
+  backdrop-filter: blur(var(--blur-strong));
+  -webkit-backdrop-filter: blur(var(--blur-strong));
+  border: 1px solid var(--border-glass);
+  color: var(--text-primary);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1.25rem;
+  transition: all 0.25s ease;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.floating-fullscreen-btn:hover {
+  color: var(--accent-blue);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: scale(1.08);
+  box-shadow: 0 10px 28px rgba(59, 91, 219, 0.3);
+}
+
+.stage-top-right {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.stage-top-right .status-pill {
+  position: relative;
+  top: 0; right: 0;
+  transform: none;
+}
+
+.stage-top-right .timer-badge {
+  position: relative;
+  top: 0; right: 0;
+  transform: none;
+}
+
+/* Dynamic Vertical HUD Badge Motion (Tabbed Mode -> Inside Camera | Fullscreen Mode -> Outside Camera) */
+
+.progress-badge,
+.stage-top-right,
+.instruction-toast {
+  transition: top 0.35s cubic-bezier(0.16, 1, 0.3, 1), bottom 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease, transform 0.3s ease;
+}
+
+[data-fullscreen="true"] .progress-badge,
+:fullscreen .progress-badge {
+  top: -40px;
+  left: 0px;
+}
+
+[data-fullscreen="true"] .stage-top-right,
+:fullscreen .stage-top-right {
+  top: -40px;
+  right: 0px;
+}
+
+[data-fullscreen="true"] .instruction-toast,
+:fullscreen .instruction-toast {
+  bottom: -52px;
 }
 
 .settings-panel {
   position: fixed;
-  top: 68px;
-  right: 24px;
+  top: 80px;
+  right: 384px;
   background: var(--bg-glass-strong);
   backdrop-filter: blur(var(--blur-strong));
   -webkit-backdrop-filter: blur(var(--blur-strong));
@@ -774,7 +953,6 @@ html, body {
   padding: 20px;
   z-index: 99999;
   min-width: 260px;
-  /* Use visibility + opacity for animatable show/hide, NOT display:none */
   visibility: hidden;
   opacity: 0;
   pointer-events: none;
@@ -928,7 +1106,7 @@ html, body {
   align-items: center;
   justify-content: center;
   text-align: center;
-  z-index: 30;
+  z-index: 15;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);

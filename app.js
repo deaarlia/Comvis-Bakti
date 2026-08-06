@@ -136,7 +136,7 @@ async function init() {
     loadingOverlay.classList.add("hidden");
     statusDot.className = "status-dot live";
     statusText.textContent = "kamera aktif";
-    showInstruction("Tunjukkan 2 tangan & cubit (pinch) untuk framing foto");
+    showInstruction("Tunjukkan kedua tangan, lalu cubit untuk membuat bingkai");
     updateStripDownload();
 
     requestAnimationFrame(renderLoop);
@@ -254,21 +254,30 @@ async function populateCameraList() {
 
 function fitCanvasToWindow() {
   const stageEl = document.getElementById("stage");
-  const vw = stageEl.clientWidth;
-  const vh = stageEl.clientHeight;
-  const videoAspect = canvas.width / canvas.height;
-  const containerAspect = vw / vh;
+  const wrapperEl = document.getElementById("canvasWrapper");
+  if (!stageEl || !wrapperEl || !canvas) return;
+
+  const videoAspect = (canvas.width && canvas.height) ? (canvas.width / canvas.height) : (16 / 9);
+  wrapperEl.style.setProperty("--canvas-aspect", `${videoAspect}`);
+
+  const maxW = Math.max(100, stageEl.clientWidth - 48);
+  const maxH = Math.max(100, stageEl.clientHeight - 48);
+  const containerAspect = maxW / maxH;
 
   let cssW, cssH;
   if (containerAspect > videoAspect) {
-    cssW = vw;
-    cssH = vw / videoAspect;
+    cssH = maxH;
+    cssW = maxH * videoAspect;
   } else {
-    cssH = vh;
-    cssW = vh * videoAspect;
+    cssW = maxW;
+    cssH = maxW / videoAspect;
   }
-  canvas.style.width = `${cssW}px`;
-  canvas.style.height = `${cssH}px`;
+  const roundedW = `${Math.round(cssW)}px`;
+  const roundedH = `${Math.round(cssH)}px`;
+  canvas.style.width = roundedW;
+  canvas.style.height = roundedH;
+  wrapperEl.style.width = roundedW;
+  wrapperEl.style.height = roundedH;
 }
 
 window.addEventListener("resize", fitCanvasToWindow);
@@ -402,12 +411,12 @@ function drawCountdownOverlay(box) {
 
   ctx.save();
   // Neo Blue frame
-  ctx.strokeStyle = "#0076ff";
+  ctx.strokeStyle = "#3b5bdb";
   ctx.lineWidth = 3;
   ctx.strokeRect(box.x, box.y, box.width, box.height);
 
   // Darken inside
-  ctx.fillStyle = "rgba(10, 10, 8, 0.45)";
+  ctx.fillStyle = "rgba(10, 14, 26, 0.55)";
   ctx.fillRect(box.x, box.y, box.width, box.height);
 
   // Countdown number
@@ -416,7 +425,7 @@ function drawCountdownOverlay(box) {
   const cy = box.y + box.height / 2;
   const fontSize = Math.max(48, Math.min(box.width, box.height) * 0.4);
   ctx.font = `800 ${fontSize}px 'Plus Jakarta Sans', sans-serif`;
-  ctx.fillStyle = "#0076ff";
+  ctx.fillStyle = "#3b5bdb";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText(String(n), cx, cy);
@@ -524,7 +533,7 @@ function createPuzzlePieces(cropCanvas, box) {
   startPuzzleTimer();
   updateProgressBadge();
 
-  showInstruction("• Cubit (pinch) 1 tangan untuk geser kepingan");
+  showInstruction(" Cubit dengan satu tangan untuk menggeser kepingan");
 }
 
 function shuffle(arr) {
@@ -723,7 +732,7 @@ function drawVideoFrame() {
 function drawLiveFrameOverlay(box) {
   ctx.save();
   // Neo Blue frame border
-  ctx.strokeStyle = "#0076ff";
+  ctx.strokeStyle = "#3b5bdb";
   ctx.lineWidth = 3;
   ctx.strokeRect(box.x, box.y, box.width, box.height);
 
@@ -747,7 +756,7 @@ function drawLiveFrameOverlay(box) {
   // Dimension label
   const ar = (box.width / box.height).toFixed(2);
   ctx.font = "600 12px 'Plus Jakarta Sans', sans-serif";
-  ctx.fillStyle = "#0076ff";
+  ctx.fillStyle = "#3b5bdb";
   ctx.textAlign = "left";
   ctx.fillText(`${Math.round(box.width)}×${Math.round(box.height)}  AR ${ar}`, box.x + 4, Math.max(14, box.y - 8));
 
@@ -759,13 +768,13 @@ function drawBoardAndPieces() {
 
   // Board background
   ctx.save();
-  ctx.fillStyle = "#000";
+  ctx.fillStyle = "#0a0e1a";
   ctx.fillRect(box.x, box.y, box.width, box.height);
   ctx.restore();
 
   // Grid lines
   ctx.save();
-  ctx.strokeStyle = "rgba(245, 197, 24, 0.18)";
+  ctx.strokeStyle = "rgba(59, 91, 219, 0.22)";
   ctx.lineWidth = 1;
   for (let i = 1; i < GRID; i++) {
     ctx.beginPath();
@@ -779,16 +788,20 @@ function drawBoardAndPieces() {
   }
   ctx.restore();
 
-  // Pieces (dragged ones on top)
-  const sorted = [...puzzle.pieces].sort((a, b) => (a.dragging ? 1 : 0) - (b.dragging ? 1 : 0));
+  // Pieces (Layer 0: placed/locked -> Layer 1: unplaced/freed -> Layer 2: dragging)
+  const sorted = [...puzzle.pieces].sort((a, b) => {
+    const layerA = a.dragging ? 2 : (a.placed ? 0 : 1);
+    const layerB = b.dragging ? 2 : (b.placed ? 0 : 1);
+    return layerA - layerB;
+  });
   for (const piece of sorted) {
     ctx.save();
     if (piece.dragging) {
-      ctx.shadowColor = "rgba(245, 197, 24, 0.9)";
+      ctx.shadowColor = "rgba(59, 91, 219, 0.85)";
       ctx.shadowBlur = 14;
     }
     ctx.drawImage(piece.canvas, piece.x, piece.y, piece.w, piece.h);
-    ctx.strokeStyle = piece.placed ? "#10b981" : "rgba(234, 229, 214, 0.5)";
+    ctx.strokeStyle = piece.placed ? "#10b981" : "rgba(148, 163, 184, 0.5)";
     ctx.lineWidth = piece.dragging ? 3 : 1.5;
     ctx.strokeRect(piece.x, piece.y, piece.w, piece.h);
 
@@ -815,7 +828,7 @@ function drawBoardAndPieces() {
 
   // Board border
   ctx.save();
-  ctx.strokeStyle = puzzle.solved ? "#10b981" : "#0076ff";
+  ctx.strokeStyle = puzzle.solved ? "#10b981" : "#3b5bdb";
   ctx.lineWidth = 3;
   ctx.strokeRect(box.x, box.y, box.width, box.height);
   ctx.restore();
@@ -1076,13 +1089,13 @@ function isStripFull() {
 function downloadPhotoStrip() {
   if (galleryEntries.length === 0) return;
 
-  // Crop each entry to 5:4 aspect ratio for the downloaded strip
-  const cropped54Entries = galleryEntries.map(e => cropCanvasToRatio(e.canvas, 5, 4));
+  // Crop each entry to 3:2 aspect ratio for the downloaded strip
+  const cropped32Entries = galleryEntries.map(e => cropCanvasToRatio(e.canvas, 3, 2));
 
-  const targetW = cropped54Entries[0].width;
-  const scaledHeights = cropped54Entries.map(c => Math.round(c.height * (targetW / c.width)));
+  const targetW = cropped32Entries[0].width;
+  const scaledHeights = cropped32Entries.map(c => Math.round(c.height * (targetW / c.width)));
   const border = 24, gap = 16;
-  const totalH = border * 2 + scaledHeights.reduce((s, h) => s + h, 0) + gap * (cropped54Entries.length - 1);
+  const totalH = border * 2 + scaledHeights.reduce((s, h) => s + h, 0) + gap * (cropped32Entries.length - 1);
   const totalW = targetW + border * 2;
 
   const stripCanvas = document.createElement("canvas");
@@ -1094,7 +1107,7 @@ function downloadPhotoStrip() {
   sCtx.fillRect(0, 0, totalW, totalH);
 
   let cursorY = border;
-  cropped54Entries.forEach((cCanvas) => {
+  cropped32Entries.forEach((cCanvas) => {
     const h = Math.round(cCanvas.height * (targetW / cCanvas.width));
     sCtx.drawImage(cCanvas, border, cursorY, targetW, h);
     cursorY += h + gap;
@@ -1138,7 +1151,7 @@ function resetPuzzleOnly() {
   hideTimerBadge();
   hideSolvedPopup();
   hideTimeupPopup();
-  showInstruction("Tunjukkan 2 tangan & cubit (pinch) untuk framing foto");
+  showInstruction("Tunjukkan kedua tangan, lalu cubit untuk membuat bingkai");
 }
 
 function resetEverything() {
@@ -1264,6 +1277,11 @@ function handleTimeUp() {
    MAIN RENDER LOOP
    ═══════════════════════════════════════════════════════════════════════ */
 
+function updateFilterAvailability() {
+  const isSessionActive = appState === "countdown" || appState === "puzzle" || appState === "shattering";
+  if (filterSelect) filterSelect.disabled = isSessionActive;
+}
+
 function renderLoop() {
   if (videoEl.readyState >= 2 && handLandmarker) {
     drawVideoFrame();
@@ -1271,6 +1289,8 @@ function renderLoop() {
     const result = handLandmarker.detectForVideo(videoEl, nowMs);
     processResults(result);
   }
+  updateFilterAvailability();
+  updateStripDownload();
   requestAnimationFrame(renderLoop);
 }
 
@@ -1307,7 +1327,8 @@ function processResults(result) {
   // Shattering state — just animate
   if (appState === "shattering") {
     updateAndDrawShatter();
-    statusText.innerHTML = '<i class="ph ph-floppy-disk"></i> Menyimpan…';
+    statusText.innerHTML = '<i class="ph ph-floppy-disk"></i> Menyimpan foto…';
+    showInstruction('Menyimpan ke photo strip…');
     return;
   }
 
@@ -1336,9 +1357,13 @@ function processResults(result) {
       if (lastSeenFrame.box && sinceLast < FRAME_GRACE_MS) {
         drawLiveFrameOverlay(lastSeenFrame.box);
       }
-      statusText.innerHTML = isStripFull()
-        ? '<i class="ph ph-film-strip"></i> Strip lengkap (unduh atau reset)'
-        : '<i class="ph ph-magnifying-glass"></i> Mencari tangan…';
+      if (isStripFull()) {
+        statusText.innerHTML = '<i class="ph ph-film-strip"></i> Strip lengkap!';
+        showInstruction('Unduh strip foto atau klik Bersihkan untuk mulai lagi');
+      } else {
+        statusText.innerHTML = '<i class="ph ph-magnifying-glass"></i> Mencari tangan…';
+        showInstruction('Tunjukkan kedua tangan, lalu cubit untuk membuat bingkai');
+      }
       return;
     }
 
@@ -1347,9 +1372,13 @@ function processResults(result) {
       puzzle.solved = reconcilePlacedState(puzzle.boardBox, puzzle.tileW, puzzle.tileH);
       updateProgressBadge();
       drawBoardAndPieces();
-      statusText.innerHTML = puzzle.solved
-        ? '<i class="ph ph-check-circle"></i> Puzzle selesai! Kepal tangan untuk menyimpan'
-        : '<i class="ph ph-puzzle-piece"></i> Geser kepingan puzzle dengan pinch';
+      if (puzzle.solved) {
+        statusText.innerHTML = '<i class="ph ph-check-circle"></i> Puzzle selesai!';
+        showInstruction('Kepalkan tangan untuk menyimpan ke strip');
+      } else {
+        statusText.innerHTML = '<i class="ph ph-puzzle-piece"></i> Sesi puzzle aktif';
+        showInstruction('Cubit dengan satu tangan untuk menggeser kepingan');
+      }
       return;
     }
 
@@ -1384,7 +1413,8 @@ function processResults(result) {
   /* ── TRACKING STATE ── */
   if (appState === "tracking") {
     if (isStripFull()) {
-      statusText.innerHTML = '<i class="ph ph-film-strip"></i> Strip lengkap (unduh atau reset)';
+      statusText.innerHTML = '<i class="ph ph-film-strip"></i> Strip lengkap!';
+      showInstruction('Unduh strip foto atau klik Bersihkan untuk mulai lagi');
       return;
     }
 
@@ -1407,7 +1437,8 @@ function processResults(result) {
           freezeGate.since = performance.now();
         }
         statusDot.className = "status-dot armed";
-        statusText.innerHTML = '<i class="ph ph-hand-grabbing"></i> Tahan pinch…';
+        statusText.innerHTML = '<i class="ph ph-camera"></i> Membingkai foto…';
+        showInstruction('Tahan cubit dengan kedua tangan untuk mulai countdown');
 
         if (performance.now() - freezeGate.since > FREEZE_HOLD_MS) {
           freezeGate.holding = false;
@@ -1416,7 +1447,8 @@ function processResults(result) {
         }
       } else {
         freezeGate.holding = false;
-        statusText.innerHTML = '<i class="ph ph-hand"></i> Tangan terdeteksi (cubit 2 tangan untuk framing)';
+        statusText.innerHTML = '<i class="ph ph-hand"></i> 2 Tangan terdeteksi';
+        showInstruction('Cubit dengan kedua tangan untuk membuat bingkai');
       }
     } else {
       freezeGate.holding = false;
@@ -1427,6 +1459,7 @@ function processResults(result) {
       } else {
         statusText.innerHTML = '<i class="ph ph-hand"></i> Tangan terdeteksi (butuh 2 tangan)';
       }
+      showInstruction('Tunjukkan kedua tangan, lalu cubit untuk membuat bingkai');
     }
     return;
   }
@@ -1457,11 +1490,20 @@ function processResults(result) {
 
     if (!timerExpired) updateTimer();
 
-    statusText.innerHTML = puzzle.solved
-      ? (fistHoldCounter > 0
-          ? `<i class="ph ph-floppy-disk"></i> Menyimpan… tahan (${fistHoldCounter}/${FIST_HOLD_FRAMES})`
-          : '<i class="ph ph-check-circle"></i> Puzzle selesai! Kepal tangan untuk menyimpan')
-      : '<i class="ph ph-puzzle-piece"></i> Geser kepingan puzzle dengan pinch';
+    if (puzzle.solved) {
+      if (fistHoldCounter > 0) {
+        const remainingFrames = Math.max(1, FIST_HOLD_FRAMES - fistHoldCounter);
+        const holdSec = Math.ceil(remainingFrames / 10);
+        statusText.innerHTML = '<i class="ph ph-floppy-disk"></i> Menyimpan foto…';
+        showInstruction(`Tahan kepalan tangan Anda. Menyimpan… (${holdSec}s)`);
+      } else {
+        statusText.innerHTML = '<i class="ph ph-check-circle"></i> Puzzle selesai!';
+        showInstruction('Kepalkan tangan untuk menyimpan ke strip');
+      }
+    } else {
+      statusText.innerHTML = '<i class="ph ph-puzzle-piece"></i> Sesi puzzle aktif';
+      showInstruction('Cubit dengan satu tangan untuk geser kepingan');
+    }
   }
 }
 
@@ -1553,5 +1595,48 @@ if (cameraSelectEl) {
     }
   });
 }
+
+// Fullscreen mode toggle
+function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(err => {
+      console.warn("[NeoPuzzle] Fullscreen error:", err);
+    });
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    }
+  }
+}
+
+const fullscreenBtnEl = document.getElementById("fullscreenBtn");
+const fullscreenIconEl = document.getElementById("fullscreenIcon");
+
+if (fullscreenBtnEl) {
+  fullscreenBtnEl.addEventListener("click", toggleFullscreen);
+}
+
+document.addEventListener("fullscreenchange", () => {
+  const isFS = !!document.fullscreenElement;
+  document.documentElement.setAttribute("data-fullscreen", isFS ? "true" : "false");
+  if (fullscreenIconEl) {
+    fullscreenIconEl.className = isFS ? "ph ph-arrows-in-simple" : "ph ph-arrows-out-simple";
+  }
+  if (fullscreenBtnEl) {
+    fullscreenBtnEl.title = isFS ? "Keluar Layar Penuh (ESC)" : "Layar Penuh (F11)";
+  }
+  fitCanvasToWindow();
+  requestAnimationFrame(fitCanvasToWindow);
+  setTimeout(fitCanvasToWindow, 350);
+});
+
+// Keyboard shortcut (F / F11) for Fullscreen
+document.addEventListener("keydown", (e) => {
+  if (e.key === "f" || e.key === "F" || e.key === "F11") {
+    if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) return;
+    e.preventDefault();
+    toggleFullscreen();
+  }
+});
 
 window.addEventListener("DOMContentLoaded", init);

@@ -25,151 +25,159 @@
 </head>
 <body>
 
-  <!-- Top Navbar Header (Judul | Dropdown filter | Status mencari tangan) -->
-  <header class="navbar">
-    <div class="nav-left">
-      <div class="brand">
-        <img id="brandLogo" src="assets/logo-neo-white.png" alt="Logo Neo Telemetri" class="brand-logo" />
-        <div class="brand-divider"></div>
-        <span class="brand-name">NEO<span class="brand-accent">PUZZLE</span></span>
-        <span class="brand-sub">hand-frame capture</span>
-      </div>
-    </div>
-
-    <div class="nav-center">
-      <!-- Dropdown Filter -->
-      <div id="filterControl" class="filter-control">
-        <i class="ph ph-palette"></i>
-        <select id="filterSelect" class="filter-select">
-          <option value="color" selected>Warna Asli</option>
-          <option value="vintage_warm">Warm Film</option>
-          <option value="mono_chrome">Noir Mono</option>
-          <option value="vintage_mono">Vintage Noir (Cool Brown)</option>
-        </select>
-      </div>
-
-      <!-- Progress Badge -->
-      <div id="progressBadge" class="progress-badge">
-        <i class="ph ph-puzzle-piece"></i>
-        <span id="progressText">0 / 9 terpasang</span>
-      </div>
-    </div>
-
-    <div class="nav-right">
-      <!-- Status mencari tangan -->
-      <div class="status-pill">
-        <span id="statusDot" class="status-dot"></span>
-        <span id="statusText">Memuat kamera…</span>
-      </div>
-
-      <!-- Settings Button -->
-      <button id="settingsBtn" class="settings-btn" title="Pengaturan" onclick="window.toggleSettings(event)">
-        <i class="ph ph-gear-six"></i>
-      </button>
-    </div>
-  </header>
-
-  <!-- Settings Panel Dropdown (Fixed Floating Position) -->
-  <div id="settingsPanel" class="settings-panel">
-    <div class="settings-title">
-      <i class="ph ph-sliders-horizontal"></i> Pengaturan
-    </div>
-
-    <!-- Timer Setting -->
-    <div class="settings-group">
-      <span class="settings-group-label">Batas Waktu Puzzle</span>
-      <label class="radio-option">
-        <input type="radio" name="timerLimit" value="0" id="timerNone" checked />
-        <span>Tanpa Batas</span>
-      </label>
-      <label class="radio-option">
-        <input type="radio" name="timerLimit" value="60" id="timer1" />
-        <span>1 Menit</span>
-      </label>
-      <label class="radio-option">
-        <input type="radio" name="timerLimit" value="120" id="timer2" />
-        <span>2 Menit</span>
-      </label>
-      <label class="radio-option">
-        <input type="radio" name="timerLimit" value="180" id="timer3" />
-        <span>3 Menit</span>
-      </label>
-    </div>
-
-    <!-- Theme Setting -->
-    <div class="settings-group" style="margin-top: 14px;">
-      <span class="settings-group-label">Tema Aplikasi</span>
-      <label class="radio-option">
-        <input type="radio" name="themeMode" value="dark" id="themeDark" checked />
-        <span><i class="ph ph-moon"></i> Gelap (Dark)</span>
-      </label>
-      <label class="radio-option">
-        <input type="radio" name="themeMode" value="light" id="themeLight" />
-        <span><i class="ph ph-sun"></i> Terang (Light)</span>
-      </label>
-    </div>
-
-    <!-- Camera Selection Setting -->
-    <div class="settings-group" style="margin-top: 14px;">
-      <span class="settings-group-label">Pilih Kamera</span>
-      <select id="cameraSelect" class="settings-select">
-        <option value="">Memuat kamera…</option>
-      </select>
-    </div>
-
-    <div id="settingsNotice" class="settings-notice" style="display: none;">
-      <i class="ph ph-lock-key"></i> Opsi batas waktu terkunci selama sesi foto
-    </div>
-  </div>
-
-  <!-- Main Body Layout (Stage on Left, Vertical Sidebar on Right) -->
   <div id="app">
-    <!-- Camera & Interactive Canvas Stage -->
-    <div id="stage">
-      <video id="webcam" playsinline autoplay muted></video>
-      <canvas id="sceneCanvas"></canvas>
+    <!-- Left Main Column (Navbar + Camera Stage) -->
+    <div id="mainCol">
+      <!-- Top Navbar Header (Brand Left | Filter Center | Settings Right) -->
+      <header class="navbar">
+        <div class="nav-left">
+          <div class="brand">
+            <img id="brandLogo" src="assets/logo-neo-white.png" alt="Logo Neo Telemetri" class="brand-logo" />
+            <div class="brand-divider"></div>
+            <span class="brand-name">NEO<span class="brand-accent">PUZZLE</span></span>
+            <span class="brand-sub">hand-frame capture</span>
+          </div>
+        </div>
 
-      <!-- Timer Badge (Top Right Corner of Camera Stage) -->
-      <div id="timerBadge" class="timer-badge">
-        <i class="ph ph-timer"></i>
-        <span id="timerText">0:00</span>
-      </div>
+        <div class="nav-center">
+          <div id="filterControl" class="filter-control">
+            <i class="ph ph-palette"></i>
+            <select id="filterSelect" class="filter-select">
+              <option value="color" selected>Warna Asli</option>
+              <option value="vintage_warm">Warm Film</option>
+              <option value="mono_chrome">Noir Mono</option>
+              <option value="vintage_mono">Vintage Noir (Cool Brown)</option>
+            </select>
+          </div>
+        </div>
 
-      <!-- Error Banner -->
-      <div id="errorBanner" class="error-banner"></div>
-
-      <!-- Loading Overlay -->
-      <div id="loadingOverlay" class="overlay">
-        <div class="loader-content">
-          <div class="spinner"></div>
-          <p id="loaderText">Menyiapkan MediaPipe Hand Tracker…</p>
-          <button id="loaderRetry" class="btn btn-retry hidden" onclick="location.reload()">
-            <i class="ph ph-arrow-clockwise"></i> Coba Lagi
+        <div class="nav-right">
+          <button id="settingsBtn" class="settings-btn" title="Pengaturan" onclick="window.toggleSettings(event)">
+            <i class="ph ph-gear-six"></i>
           </button>
         </div>
-      </div>
 
-      <!-- Instruction Toast at Bottom of Stage -->
-      <div id="instructionToast" class="instruction-toast hidden">
-        <i class="ph ph-hand-grabbing"></i>
-        <span id="instructionText">Tunjukkan 2 tangan & cubit untuk framing</span>
-      </div>
+        <!-- Settings Panel Dropdown -->
+        <div id="settingsPanel" class="settings-panel">
+          <div class="settings-title">
+            <i class="ph ph-sliders-horizontal"></i> Pengaturan
+          </div>
 
-      <!-- Full-screen / Overlay Messages on Stage (Pesan Berhasil / Waktu Habis) -->
-      <div id="solvedPopup" class="canvas-popup popup-solved">
-        <div class="popup-icon"><i class="ph-bold ph-trophy"></i></div>
-        <div class="popup-title">Puzzle Selesai!</div>
-        <div class="popup-sub">Kepal tangan (<i class="ph ph-hand-fist"></i>) untuk menyimpan ke strip</div>
-      </div>
+          <div class="settings-group">
+            <span class="settings-group-label">Batas Waktu Puzzle</span>
+            <label class="radio-option">
+              <input type="radio" name="timerLimit" value="0" id="timerNone" checked />
+              <span>Tanpa Batas</span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="timerLimit" value="60" id="timer1" />
+              <span>1 Menit</span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="timerLimit" value="120" id="timer2" />
+              <span>2 Menit</span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="timerLimit" value="180" id="timer3" />
+              <span>3 Menit</span>
+            </label>
+          </div>
 
-      <div id="timeupPopup" class="canvas-popup popup-timeup">
-        <div class="popup-icon"><i class="ph-bold ph-alarm"></i></div>
-        <div class="popup-title">Waktu Habis!</div>
-        <div class="popup-sub">Puzzle akan direset otomatis</div>
+          <div class="settings-group" style="margin-top: 14px;">
+            <span class="settings-group-label">Tema Aplikasi</span>
+            <label class="radio-option">
+              <input type="radio" name="themeMode" value="dark" id="themeDark" checked />
+              <span><i class="ph ph-moon"></i> Gelap (Dark)</span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="themeMode" value="light" id="themeLight" />
+              <span><i class="ph ph-sun"></i> Terang (Light)</span>
+            </label>
+          </div>
+
+          <div class="settings-group" style="margin-top: 14px;">
+            <span class="settings-group-label">Pilih Kamera</span>
+            <select id="cameraSelect" class="settings-select">
+              <option value="">Memuat kamera…</option>
+            </select>
+          </div>
+
+          <div id="settingsNotice" class="settings-notice" style="display: none;">
+            <i class="ph ph-lock-key"></i> Opsi batas waktu terkunci selama sesi foto
+          </div>
+        </div>
+      </header>
+
+      <!-- Camera Stage (Left Area) -->
+      <div id="stage">
+        <video id="webcam" playsinline autoplay muted></video>
+
+        <!-- Dynamic Camera Frame Wrapper -->
+        <div id="canvasWrapper" class="canvas-wrapper">
+          <canvas id="sceneCanvas"></canvas>
+
+          <!-- Progress Badge -->
+          <div id="progressBadge" class="progress-badge">
+            <i class="ph ph-puzzle-piece"></i>
+            <span id="progressText">0 / 9 terpasang</span>
+          </div>
+
+          <!-- Status + Timer Container -->
+          <div class="stage-top-right">
+            <div class="status-pill">
+              <span id="statusDot" class="status-dot"></span>
+              <span id="statusText">Memuat kamera…</span>
+            </div>
+
+            <div id="timerBadge" class="timer-badge">
+              <i class="ph ph-timer"></i>
+              <span id="timerText">0:00</span>
+            </div>
+          </div>
+
+          <!-- Fullscreen Button -->
+          <button id="fullscreenBtn" class="floating-fullscreen-btn" title="Layar Penuh (F11)">
+            <i id="fullscreenIcon" class="ph ph-arrows-out-simple"></i>
+          </button>
+
+          <!-- Instruction Toast -->
+          <div id="instructionToast" class="instruction-toast hidden">
+            <i class="ph ph-hand-grabbing"></i>
+            <span id="instructionText">Tunjukkan kedua tangan, lalu cubit untuk membuat bingkai</span>
+          </div>
+
+          <!-- Solved Popup -->
+          <div id="solvedPopup" class="canvas-popup popup-solved">
+            <div class="popup-icon"><i class="ph-bold ph-trophy"></i></div>
+            <div class="popup-title">Puzzle Selesai!</div>
+            <div class="popup-sub">Kepalkan tangan untuk menyimpan ke strip</div>
+          </div>
+
+          <!-- Time's Up Popup -->
+          <div id="timeupPopup" class="canvas-popup popup-timeup">
+            <div class="popup-icon"><i class="ph-bold ph-alarm"></i></div>
+            <div class="popup-title">Waktu Habis!</div>
+            <div class="popup-sub">Puzzle akan direset otomatis</div>
+          </div>
+        </div>
+
+        <!-- Error Banner -->
+        <div id="errorBanner" class="error-banner"></div>
+
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay" class="overlay">
+          <div class="loader-content">
+            <div class="spinner"></div>
+            <p id="loaderText">Menyiapkan MediaPipe Hand Tracker…</p>
+            <button id="loaderRetry" class="btn btn-retry hidden" onclick="location.reload()">
+              <i class="ph ph-arrow-clockwise"></i> Coba Lagi
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Photo Strip Sidebar on Right -->
+    <!-- Photo Strip Sidebar (Full 100vh Height Column on Right) -->
     <aside id="gallerySidebar" class="gallery-sidebar">
       <div class="gallery-header">
         <div class="gallery-title">
@@ -179,24 +187,26 @@
         <span id="galleryCount" class="gallery-count">0 / 3</span>
       </div>
 
-      <div id="galleryStrip" class="gallery-strip">
-        <div id="galleryEmpty" class="gallery-empty">
-          <i class="ph-thin ph-image-broken"></i>
-          <p>Selesaikan puzzle untuk menambah foto</p>
+      <div class="gallery-body">
+        <div id="galleryStrip" class="gallery-strip">
+          <div id="galleryEmpty" class="gallery-empty">
+            <i class="ph-thin ph-image-broken"></i>
+            <p>Selesaikan puzzle untuk menambah foto</p>
+          </div>
         </div>
-      </div>
 
-      <div id="stripCompleteMsg" class="strip-complete">
-        <i class="ph ph-check-circle"></i> Strip lengkap!
-      </div>
+        <div id="stripCompleteMsg" class="strip-complete">
+          <i class="ph ph-check-circle"></i> Strip lengkap!
+        </div>
 
-      <div class="gallery-actions">
-        <button id="downloadStripBtn" class="btn btn-download" disabled>
-          <i class="ph ph-download-simple"></i> Unduh Strip
-        </button>
-        <button id="resetAllBtn" class="btn btn-reset">
-          <i class="ph ph-trash"></i> Bersihkan
-        </button>
+        <div class="gallery-actions">
+          <button id="downloadStripBtn" class="btn btn-download" disabled>
+            <i class="ph ph-download-simple"></i> Unduh Strip
+          </button>
+          <button id="resetAllBtn" class="btn btn-reset" disabled>
+            <i class="ph ph-trash"></i> Bersihkan
+          </button>
+        </div>
       </div>
     </aside>
   </div>
