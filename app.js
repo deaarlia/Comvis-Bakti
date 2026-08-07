@@ -1285,15 +1285,25 @@ function updateFilterAvailability() {
   if (filterSelect) filterSelect.disabled = isSessionActive;
 }
 
+let lastDetectionTime = 0;
+const DETECTION_INTERVAL_MS = 30; // Max 33 FPS AI inference throttling to prevent CPU/GPU bottlenecks
+let cachedResult = null;
+
 function renderLoop() {
   if (videoEl.readyState >= 2 && handLandmarker) {
     drawVideoFrame();
     const nowMs = performance.now();
-    const result = handLandmarker.detectForVideo(videoEl, nowMs);
-    processResults(result);
+    
+    // AI Neural Net inference throttled to 33 FPS max while canvas renders at smooth 60 FPS
+    if (nowMs - lastDetectionTime >= DETECTION_INTERVAL_MS) {
+      cachedResult = handLandmarker.detectForVideo(videoEl, nowMs);
+      lastDetectionTime = nowMs;
+    }
+    
+    if (cachedResult) {
+      processResults(cachedResult);
+    }
   }
-  updateFilterAvailability();
-  updateStripDownload();
   requestAnimationFrame(renderLoop);
 }
 
