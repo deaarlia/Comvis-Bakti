@@ -1135,8 +1135,20 @@ html, body {
   margin-bottom: 24px;
 }
 
+.popup-solved {
+  background: rgba(10, 14, 26, 0.45);
+}
+
 .popup-solved .popup-icon { color: var(--accent-green); }
-.popup-solved .popup-title { color: var(--accent-green); }
+.popup-solved .popup-title {
+  color: var(--accent-green);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7);
+}
+.popup-solved .popup-sub {
+  color: #f1f5f9;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.7);
+  font-weight: 500;
+}
 
 .popup-timeup .popup-icon { color: var(--accent-red); }
 .popup-timeup .popup-title { color: var(--accent-red); }

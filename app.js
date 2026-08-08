@@ -79,6 +79,8 @@ const stripCompleteMsg = document.getElementById("stripCompleteMsg");
 let appState = "tracking"; // tracking | countdown | puzzle | shattering
 let handLandmarker = null;
 let activeFilter = "color";
+let handLossGraceCounter = 0;
+const MAX_HAND_LOSS_GRACE_FRAMES = 3;
 
 const puzzle = {
   boardBox: null,
@@ -159,9 +161,9 @@ async function initHandLandmarker(vision) {
         },
         runningMode: "VIDEO",
         numHands: 2,
-        minHandDetectionConfidence: 0.6,
-        minHandPresenceConfidence: 0.6,
-        minTrackingConfidence: 0.6,
+        minHandDetectionConfidence: 0.48,
+        minHandPresenceConfidence: 0.48,
+        minTrackingConfidence: 0.48,
       }),
       LOAD_TIMEOUT_MS,
       "Timeout saat mengunduh model HandLandmarker dengan GPU."
@@ -179,9 +181,9 @@ async function initHandLandmarker(vision) {
       },
       runningMode: "VIDEO",
       numHands: 2,
-      minHandDetectionConfidence: 0.6,
-      minHandPresenceConfidence: 0.6,
-      minTrackingConfidence: 0.6,
+      minHandDetectionConfidence: 0.48,
+      minHandPresenceConfidence: 0.48,
+      minTrackingConfidence: 0.48,
     }),
     LOAD_TIMEOUT_MS,
     "Timeout saat mengunduh model HandLandmarker dengan CPU."
@@ -1352,7 +1354,16 @@ function processResults(result) {
   }
 
   const handsLandmarks = result.landmarks || [];
-  const noHands = handsLandmarks.length === 0;
+  const rawNoHands = handsLandmarks.length === 0;
+
+  if (rawNoHands) {
+    handLossGraceCounter++;
+  } else {
+    handLossGraceCounter = 0;
+  }
+
+  // Only consider hand lost if absent for more than 3 consecutive frames (~100ms)
+  const noHands = rawNoHands && (handLossGraceCounter >= MAX_HAND_LOSS_GRACE_FRAMES);
 
   /* ── No Hands Detected ── */
   if (noHands) {
@@ -1360,7 +1371,7 @@ function processResults(result) {
     fistHoldCounter = 0;
     freezeGate.holding = false;
 
-    // Release any dragged piece
+    // Release any dragged piece only after 3 consecutive empty frames
     if (drag.activeHand && drag.piece) {
       handleDragForHand(drag.activeHand, false, { x: drag.piece.x, y: drag.piece.y });
     }
@@ -1401,8 +1412,8 @@ function processResults(result) {
   /* ── Hands Detected ── */
   statusDot.className = puzzle.solved ? "status-dot solved" : "status-dot live";
 
-  // Draw hand skeletons in tracking mode
-  if (appState === "tracking") {
+  // Draw hand skeletons in tracking mode AND in solved puzzle final state
+  if (appState === "tracking" || (appState === "puzzle" && puzzle.solved)) {
     for (const lm of handsLandmarks) {
       const landmarksPx = lm.map(pt => toPixel(mirrorLandmarkX(pt)));
       drawHandSkeleton(landmarksPx);
