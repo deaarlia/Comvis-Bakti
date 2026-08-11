@@ -262,8 +262,10 @@ function fitCanvasToWindow() {
   const videoAspect = (canvas.width && canvas.height) ? (canvas.width / canvas.height) : (16 / 9);
   wrapperEl.style.setProperty("--canvas-aspect", `${videoAspect}`);
 
-  const maxW = Math.max(100, stageEl.clientWidth - 48);
-  const maxH = Math.max(100, stageEl.clientHeight - 48);
+  // Gunakan getBoundingClientRect untuk presisi piksel tinggi/lebar
+  const rect = stageEl.getBoundingClientRect();
+  const maxW = Math.max(100, rect.width - 32);
+  const maxH = Math.max(100, rect.height - 32);
   const containerAspect = maxW / maxH;
 
   let cssW, cssH;
@@ -274,15 +276,23 @@ function fitCanvasToWindow() {
     cssW = maxW;
     cssH = maxW / videoAspect;
   }
+
   const roundedW = `${Math.round(cssW)}px`;
   const roundedH = `${Math.round(cssH)}px`;
+
   canvas.style.width = roundedW;
   canvas.style.height = roundedH;
   wrapperEl.style.width = roundedW;
   wrapperEl.style.height = roundedH;
 }
 
-window.addEventListener("resize", fitCanvasToWindow);
+let resizeTimer;
+window.addEventListener("resize", () => {
+  fitCanvasToWindow();
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(fitCanvasToWindow, 100);
+});
+
 window.addEventListener("orientationchange", () => {
   setTimeout(fitCanvasToWindow, 150);
 });
@@ -720,18 +730,27 @@ function handleDragForHand(handLabel, pinching, indexPx) {
    RENDERING
    ═══════════════════════════════════════════════════════════════════════ */
 
+function getGpuCanvasFilter(filterType) {
+  if (filterType === "vintage_warm") {
+    return "sepia(40%) contrast(110%) brightness(105%) saturate(115%)";
+  } else if (filterType === "mono_chrome") {
+    return "grayscale(100%) contrast(135%) brightness(95%)";
+  } else if (filterType === "vintage_mono") {
+    return "grayscale(100%) sepia(30%) contrast(125%) brightness(100%)";
+  }
+  return "none";
+}
+
 function drawVideoFrame() {
   ctx.save();
   ctx.translate(canvas.width, 0);
   ctx.scale(-1, 1);
-  ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
-  ctx.restore();
-
   if (activeFilter !== "color") {
-    const fullImg = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    applyFilter(fullImg, activeFilter);
-    ctx.putImageData(fullImg, 0, 0);
+    ctx.filter = getGpuCanvasFilter(activeFilter);
   }
+  ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+  ctx.filter = "none";
+  ctx.restore();
 }
 
 function drawLiveFrameOverlay(box) {
@@ -801,10 +820,6 @@ function drawBoardAndPieces() {
   });
   for (const piece of sorted) {
     ctx.save();
-    if (piece.dragging) {
-      ctx.shadowColor = "rgba(59, 91, 219, 0.85)";
-      ctx.shadowBlur = 14;
-    }
     ctx.drawImage(piece.canvas, piece.x, piece.y, piece.w, piece.h);
     ctx.strokeStyle = piece.placed ? "#10b981" : "rgba(148, 163, 184, 0.5)";
     ctx.lineWidth = piece.dragging ? 3 : 1.5;
@@ -854,8 +869,6 @@ function drawHandSkeleton(landmarksPx) {
   ctx.save();
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
-  ctx.shadowColor = "rgba(255, 255, 255, 0.85)";
-  ctx.shadowBlur = 10;
   ctx.strokeStyle = "white";
   ctx.lineWidth = 3;
 
@@ -868,7 +881,6 @@ function drawHandSkeleton(landmarksPx) {
     ctx.stroke();
   }
 
-  ctx.shadowBlur = 6;
   ctx.fillStyle = "white";
   for (const p of landmarksPx) {
     ctx.beginPath();
@@ -1288,7 +1300,7 @@ function updateFilterAvailability() {
 }
 
 let lastDetectionTime = 0;
-const DETECTION_INTERVAL_MS = 30; // Max 33 FPS AI inference throttling to prevent CPU/GPU bottlenecks
+const DETECTION_INTERVAL_MS = 50; // Max ~20 FPS AI inference throttling to free up Main Thread CPU cycles
 let cachedResult = null;
 
 function renderLoop() {
@@ -1296,7 +1308,7 @@ function renderLoop() {
     drawVideoFrame();
     const nowMs = performance.now();
     
-    // AI Neural Net inference throttled to 33 FPS max while canvas renders at smooth 60 FPS
+    // AI Neural Net inference throttled to ~20 FPS while canvas renders at smooth 60 FPS
     if (nowMs - lastDetectionTime >= DETECTION_INTERVAL_MS) {
       cachedResult = handLandmarker.detectForVideo(videoEl, nowMs);
       lastDetectionTime = nowMs;
@@ -1560,7 +1572,7 @@ function getCanvasPointerCoords(e) {
 canvas.addEventListener("pointerdown", (e) => {
   if (appState !== "puzzle" || puzzle.solved) return;
   const pt = getCanvasPointerCoords(e);
-  const target = findClosestTile(pt.x, pt.y);
+  const target = findNearestPiece(pt.x, pt.y);
   if (target && !target.placed) {
     pointerDragPiece = target;
     target.dragging = true;
@@ -1580,17 +1592,23 @@ const endPointerDrag = () => {
   pointerDragPiece = null;
   p.dragging = false;
 
-  const targetX = puzzle.boardBox.x + p.targetCol * puzzle.tileW;
-  const targetY = puzzle.boardBox.y + p.targetRow * puzzle.tileH;
-  const dist = Math.hypot(p.x - targetX, p.y - targetY);
-  const snapDist = Math.min(puzzle.tileW, puzzle.tileH) * SNAP_DISTANCE_RATIO;
+  if (isNearOwnCell(p, puzzle.boardBox, puzzle.tileW, puzzle.tileH)) {
+    snapPieceToCell(p, puzzle.boardBox, puzzle.tileW, puzzle.tileH);
+  } else {
+    const box = puzzle.boardBox;
+    const cx = p.x + p.w / 2;
+    const cy = p.y + p.h / 2;
+    const dropCol = Math.min(GRID - 1, Math.max(0, Math.floor((cx - box.x) / puzzle.tileW)));
+    const dropRow = Math.min(GRID - 1, Math.max(0, Math.floor((cy - box.y) / puzzle.tileH)));
 
-  if (dist <= snapDist) {
-    p.x = targetX;
-    p.y = targetY;
-    p.placed = true;
-    checkPuzzleSolved();
+    p.x = box.x + dropCol * puzzle.tileW;
+    p.y = box.y + dropRow * puzzle.tileH;
+
+    displaceCellOccupant(p, dropRow, dropCol, box, puzzle.tileW, puzzle.tileH);
   }
+
+  puzzle.solved = reconcilePlacedState(puzzle.boardBox, puzzle.tileW, puzzle.tileH);
+  updateProgressBadge();
 };
 
 canvas.addEventListener("pointerup", endPointerDrag);
@@ -1673,48 +1691,5 @@ if (cameraSelectEl) {
     }
   });
 }
-
-// Fullscreen mode toggle
-function toggleFullscreen() {
-  if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen().catch(err => {
-      console.warn("[NeoPuzzle] Fullscreen error:", err);
-    });
-  } else {
-    if (document.exitFullscreen) {
-      document.exitFullscreen();
-    }
-  }
-}
-
-const fullscreenBtnEl = document.getElementById("fullscreenBtn");
-const fullscreenIconEl = document.getElementById("fullscreenIcon");
-
-if (fullscreenBtnEl) {
-  fullscreenBtnEl.addEventListener("click", toggleFullscreen);
-}
-
-document.addEventListener("fullscreenchange", () => {
-  const isFS = !!document.fullscreenElement;
-  document.documentElement.setAttribute("data-fullscreen", isFS ? "true" : "false");
-  if (fullscreenIconEl) {
-    fullscreenIconEl.className = isFS ? "ph ph-arrows-in-simple" : "ph ph-arrows-out-simple";
-  }
-  if (fullscreenBtnEl) {
-    fullscreenBtnEl.title = isFS ? "Keluar Layar Penuh (ESC)" : "Layar Penuh (F11)";
-  }
-  fitCanvasToWindow();
-  requestAnimationFrame(fitCanvasToWindow);
-  setTimeout(fitCanvasToWindow, 350);
-});
-
-// Keyboard shortcut (F / F11) for Fullscreen
-document.addEventListener("keydown", (e) => {
-  if (e.key === "f" || e.key === "F" || e.key === "F11") {
-    if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) return;
-    e.preventDefault();
-    toggleFullscreen();
-  }
-});
 
 window.addEventListener("DOMContentLoaded", init);

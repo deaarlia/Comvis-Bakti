@@ -30,8 +30,8 @@
   --radius-lg: 16px;
   --radius-pill: 100px;
 
-  --blur: 14px;
-  --blur-strong: 24px;
+  --blur: 4px;
+  --blur-strong: 8px;
 }
 
 [data-theme="light"] {
@@ -117,38 +117,6 @@ html, body {
   will-change: height, padding;
 }
 
-/* Dynamic Fullscreen Mode Navbar & Layout Height */
-[data-fullscreen="true"] .navbar,
-:fullscreen .navbar,
-:-webkit-full-screen .navbar {
-  height: 90px;
-  padding: 0 32px;
-}
-
-[data-fullscreen="true"] .settings-panel,
-:fullscreen .settings-panel,
-:-webkit-full-screen .settings-panel {
-  top: 98px;
-}
-
-[data-fullscreen="true"] .brand-logo,
-:fullscreen .brand-logo,
-:-webkit-full-screen .brand-logo {
-  height: 38px;
-}
-
-[data-fullscreen="true"] .brand-name,
-:fullscreen .brand-name,
-:-webkit-full-screen .brand-name {
-  font-size: 1.25rem;
-  white-space: nowrap;
-}
-
-[data-fullscreen="true"] .brand-sub,
-:fullscreen .brand-sub,
-:-webkit-full-screen .brand-sub {
-  white-space: nowrap;
-}
 
 .nav-left, .nav-right {
   display: flex;
@@ -208,11 +176,6 @@ html, body {
   will-change: height, padding;
 }
 
-[data-fullscreen="true"] #stage,
-:fullscreen #stage {
-  height: calc(100vh - 90px);
-  padding: 32px 24px 64px 24px;
-}
 
 #webcam {
   position: absolute;
@@ -234,8 +197,8 @@ html, body {
   max-width: 100%;
   max-height: 100%;
   aspect-ratio: var(--canvas-aspect, 16 / 9);
-  transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1), height 0.35s cubic-bezier(0.16, 1, 0.3, 1), max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1), max-width 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: width, height, max-width, max-height;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  touch-action: none;
 }
 
 #sceneCanvas {
@@ -244,6 +207,9 @@ html, body {
   height: 100%;
   object-fit: contain;
   border-radius: var(--radius-lg);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 /* ======================== HUD Top ======================== */
@@ -692,11 +658,6 @@ html, body {
   transition: height 0.3s ease, padding 0.3s ease;
 }
 
-[data-fullscreen="true"] .gallery-header,
-:fullscreen .gallery-header {
-  height: 90px;
-  padding: 0 24px;
-}
 
 .gallery-body {
   flex: 1;
@@ -865,34 +826,6 @@ html, body {
   transform: translateY(-1px);
 }
 
-.floating-fullscreen-btn {
-  position: absolute;
-  bottom: 14px;
-  right: 14px;
-  z-index: 25;
-  background: var(--bg-glass-strong);
-  backdrop-filter: blur(var(--blur-strong));
-  -webkit-backdrop-filter: blur(var(--blur-strong));
-  border: 1px solid var(--border-glass);
-  color: var(--text-primary);
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 1.25rem;
-  transition: all 0.25s ease;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-}
-
-.floating-fullscreen-btn:hover {
-  color: var(--accent-blue);
-  border-color: rgba(255, 255, 255, 0.25);
-  transform: scale(1.08);
-  box-shadow: 0 10px 28px rgba(59, 91, 219, 0.3);
-}
 
 .stage-top-right {
   position: absolute;
@@ -916,30 +849,6 @@ html, body {
   transform: none;
 }
 
-/* Dynamic Vertical HUD Badge Motion (Tabbed Mode -> Inside Camera | Fullscreen Mode -> Outside Camera) */
-
-.progress-badge,
-.stage-top-right,
-.instruction-toast {
-  transition: top 0.35s cubic-bezier(0.16, 1, 0.3, 1), bottom 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease, transform 0.3s ease;
-}
-
-[data-fullscreen="true"] .progress-badge,
-:fullscreen .progress-badge {
-  top: -40px;
-  left: 0px;
-}
-
-[data-fullscreen="true"] .stage-top-right,
-:fullscreen .stage-top-right {
-  top: -40px;
-  right: 0px;
-}
-
-[data-fullscreen="true"] .instruction-toast,
-:fullscreen .instruction-toast {
-  bottom: -52px;
-}
 
 .settings-panel {
   position: fixed;
@@ -1176,12 +1085,6 @@ html, body {
     padding: 0 16px;
   }
 
-  [data-fullscreen="true"] .navbar,
-  :fullscreen .navbar,
-  :-webkit-full-screen .navbar {
-    height: 72px;
-    padding: 0 20px;
-  }
 
   .brand-name {
     font-size: 1.05rem;
@@ -1210,16 +1113,11 @@ html, body {
   }
 
   #stage {
-    height: auto;
-    min-height: 55vh;
+    height: 60vh !important;
+    min-height: 350px;
     padding: 16px 12px 56px 12px;
   }
 
-  [data-fullscreen="true"] #stage,
-  :fullscreen #stage {
-    height: calc(100vh - 72px);
-    padding: 24px 12px 56px 12px;
-  }
 
   .canvas-wrapper {
     width: 100% !important;
@@ -1247,20 +1145,6 @@ html, body {
     font-size: 0.82rem;
   }
 
-  [data-fullscreen="true"] .progress-badge,
-  :fullscreen .progress-badge {
-    top: -36px;
-  }
-
-  [data-fullscreen="true"] .stage-top-right,
-  :fullscreen .stage-top-right {
-    top: -36px;
-  }
-
-  [data-fullscreen="true"] .instruction-toast,
-  :fullscreen .instruction-toast {
-    bottom: -48px;
-  }
 
   .gallery-sidebar {
     width: 100%;
@@ -1421,12 +1305,6 @@ html, body {
     padding: 0 12px !important;
   }
 
-  [data-fullscreen="true"] .navbar,
-  :fullscreen .navbar,
-  :-webkit-full-screen .navbar {
-    height: 56px !important;
-    padding: 0 16px !important;
-  }
 
   .brand-logo {
     height: 16px !important;
@@ -1450,11 +1328,6 @@ html, body {
     min-height: auto !important;
   }
 
-  [data-fullscreen="true"] #stage,
-  :fullscreen #stage {
-    height: calc(100vh - 56px) !important;
-    padding: 12px 10px 42px 10px !important;
-  }
 
   .instruction-toast {
     bottom: 6px !important;
