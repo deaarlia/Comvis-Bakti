@@ -83,7 +83,7 @@
             </label>
           </div>
 
-          <div class="settings-group" style="margin-top: 14px;">
+          <div class="settings-group" style="margin-top: 20px;">
             <span class="settings-group-label">Tema Aplikasi</span>
             <label class="radio-option">
               <input type="radio" name="themeMode" value="dark" id="themeDark" checked />
@@ -95,11 +95,40 @@
             </label>
           </div>
 
-          <div class="settings-group" style="margin-top: 14px;">
-            <span class="settings-group-label">Pilih Kamera</span>
-            <select id="cameraSelect" class="settings-select">
-              <option value="">Memuat kamera…</option>
-            </select>
+          <!-- More / Advanced Settings Accordion -->
+          <div class="more-settings-header" id="moreSettingsToggle">
+            <span><i class="ph ph-gear-six"></i> Opsi Lanjutan</span>
+            <i class="ph ph-caret-down accordion-caret" id="moreCaret"></i>
+          </div>
+
+          <div class="more-settings-content hidden" id="moreSettingsContent">
+            <div class="settings-group" style="margin-top: 14px;">
+              <span class="settings-group-label">Pilih Kamera</span>
+              <select id="cameraSelect" class="settings-select">
+                <option value="">Memuat kamera…</option>
+              </select>
+            </div>
+
+            <div class="settings-group" style="margin-top: 20px;">
+              <div class="settings-slider-header">
+                <span class="settings-group-label">Sensitivitas Deteksi Tangan</span>
+                <span id="confValueBadge" class="conf-value-badge">65%</span>
+              </div>
+              <input
+                type="range"
+                id="confidenceSlider"
+                class="settings-slider"
+                min="30"
+                max="90"
+                step="5"
+                value="65"
+              />
+              <div class="slider-labels">
+                <span>30% (Redup)</span>
+                <span>65% (Standar)</span>
+                <span>90% (Ketat)</span>
+              </div>
+            </div>
           </div>
 
           <div id="settingsNotice" class="settings-notice" style="display: none;">
@@ -134,6 +163,11 @@
               <span id="timerText">0:00</span>
             </div>
           </div>
+
+          <!-- Cancel Frame Button (Bottom-Right of Stage) -->
+          <button id="cancelFrameBtn" class="floating-cancel-btn hidden" title="Batal Bingkai / Reset">
+            <i class="ph ph-x-circle"></i> Hapus Frame
+          </button>
 
 
           <!-- Instruction Toast -->

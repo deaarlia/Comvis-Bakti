@@ -622,6 +622,44 @@ html, body {
   animation: pulse-timer 0.5s ease-in-out infinite;
 }
 
+/* ======================== Floating Cancel Frame Button (Bottom-Right) ======================== */
+
+.floating-cancel-btn {
+  position: absolute;
+  bottom: 14px;
+  right: 14px;
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(239, 68, 68, 0.18);
+  backdrop-filter: blur(var(--blur-strong));
+  -webkit-backdrop-filter: blur(var(--blur-strong));
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  color: #ef4444;
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  transition: all 0.25s ease;
+  white-space: nowrap;
+}
+
+.floating-cancel-btn:hover {
+  background: rgba(239, 68, 68, 0.32);
+  border-color: rgba(239, 68, 68, 0.75);
+  color: #f87171;
+  box-shadow: 0 10px 28px rgba(239, 68, 68, 0.3);
+  transform: translateY(-2px) scale(1.03);
+}
+
+.floating-cancel-btn.hidden {
+  display: none !important;
+}
+
 /* ======================== Vertical Gallery Sidebar ======================== */
 
 .gallery-sidebar {
@@ -859,15 +897,33 @@ html, body {
   -webkit-backdrop-filter: blur(var(--blur-strong));
   border: 1px solid var(--border-accent);
   border-radius: var(--radius-lg);
-  padding: 20px;
+  padding: 24px 22px;
   z-index: 99999;
-  min-width: 260px;
+  min-width: 285px;
+  max-width: 330px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-glass) transparent;
   visibility: hidden;
   opacity: 0;
   pointer-events: none;
   transform: translateY(-8px);
   transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7);
+}
+
+.settings-panel::-webkit-scrollbar {
+  width: 5px;
+}
+
+.settings-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.settings-panel::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
 }
 
 .settings-panel.open {
@@ -877,11 +933,120 @@ html, body {
   transform: translateY(0);
 }
 
-.settings-title {
+/* ======================== Slider Styles ======================== */
+
+.settings-slider-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.conf-value-badge {
+  background: rgba(59, 91, 219, 0.25);
+  border: 1px solid rgba(59, 91, 219, 0.5);
+  color: #3b5bdb;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+}
+
+.settings-slider {
+  width: 100%;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.settings-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #3b5bdb;
+  border: 2px solid #ffffff;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.settings-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.18);
+  background: #4c6ef5;
+}
+
+.slider-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  margin-top: 8px;
+}
+
+/* ======================== More Settings Accordion ======================== */
+
+.more-settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 4px 10px 4px;
+  margin-top: 22px;
+  border-top: 1px solid var(--border-glass);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  transition: color 0.2s ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.more-settings-header:hover {
+  color: var(--text-primary);
+}
+
+.more-settings-header span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.more-settings-header span i {
+  color: var(--accent-blue);
+}
+
+.accordion-caret {
+  transition: transform 0.25s ease;
   font-size: 0.9rem;
+}
+
+.more-settings-header.open .accordion-caret {
+  transform: rotate(180deg);
+}
+
+.more-settings-content {
+  overflow: hidden;
+  padding-bottom: 6px;
+  transition: all 0.3s ease;
+}
+
+.more-settings-content.hidden {
+  display: none !important;
+}
+
+.settings-title {
+  font-size: 0.95rem;
   font-weight: 700;
   color: var(--text-primary);
-  margin-bottom: 14px;
+  margin-bottom: 18px;
   display: flex;
   align-items: center;
   gap: 8px;

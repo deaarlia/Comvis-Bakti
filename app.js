@@ -37,6 +37,7 @@ const GRID                = 3;
 const LOAD_TIMEOUT_MS     = 20000;
 const FRAME_GRACE_MS      = 450;
 const STRIP_MAX_PHOTOS    = 3;
+const MIN_FRAME_RATIO     = 0.30; // Minimum frame threshold (30% of canvas dimensions)
 
 /* ── Shatter effect ──────────────────────────────────────────────────── */
 const SHATTER_COLS        = 6;
@@ -98,7 +99,7 @@ const shatter = {
   pendingCanvas: null,
 };
 
-const freezeGate = { holding: false, since: 0 };
+const freezeGate = { holding: false, since: 0, box: null };
 const lastSeenFrame = { box: null, at: 0 };
 const countdown = { active: false, startedAt: 0 };
 const drag = { activeHand: null, piece: null, offsetX: 0, offsetY: 0 };
@@ -150,6 +151,23 @@ async function init() {
   }
 }
 
+let detectionConfidenceThreshold = 0.65;
+
+function updateConfidenceThreshold(newVal) {
+  detectionConfidenceThreshold = parseFloat(newVal) || 0.65;
+  if (handLandmarker && handLandmarker.setOptions) {
+    try {
+      handLandmarker.setOptions({
+        minHandDetectionConfidence: detectionConfidenceThreshold,
+        minHandPresenceConfidence: detectionConfidenceThreshold,
+        minTrackingConfidence: Math.max(0.50, detectionConfidenceThreshold - 0.05),
+      });
+    } catch (err) {
+      console.warn("[NeoPuzzle] setOptions error:", err);
+    }
+  }
+}
+
 async function initHandLandmarker(vision) {
   // Try GPU first
   try {
@@ -161,9 +179,9 @@ async function initHandLandmarker(vision) {
         },
         runningMode: "VIDEO",
         numHands: 2,
-        minHandDetectionConfidence: 0.48,
-        minHandPresenceConfidence: 0.48,
-        minTrackingConfidence: 0.48,
+        minHandDetectionConfidence: detectionConfidenceThreshold,
+        minHandPresenceConfidence: detectionConfidenceThreshold,
+        minTrackingConfidence: Math.max(0.50, detectionConfidenceThreshold - 0.05),
       }),
       LOAD_TIMEOUT_MS,
       "Timeout saat mengunduh model HandLandmarker dengan GPU."
@@ -181,9 +199,9 @@ async function initHandLandmarker(vision) {
       },
       runningMode: "VIDEO",
       numHands: 2,
-      minHandDetectionConfidence: 0.48,
-      minHandPresenceConfidence: 0.48,
-      minTrackingConfidence: 0.48,
+      minHandDetectionConfidence: detectionConfidenceThreshold,
+      minHandPresenceConfidence: detectionConfidenceThreshold,
+      minTrackingConfidence: Math.max(0.50, detectionConfidenceThreshold - 0.05),
     }),
     LOAD_TIMEOUT_MS,
     "Timeout saat mengunduh model HandLandmarker dengan CPU."
@@ -682,6 +700,24 @@ function findNearestPiece(px, py) {
   return best;
 }
 
+const SMOOTHING_ALPHA = 0.38; // Exponential Moving Average (EMA) low-pass filter factor for zero-jitter drag
+const smoothedLandmarksMap = new Map();
+
+function getSmoothedLandmarks(handLabel, rawLandmarksPx, alpha = SMOOTHING_ALPHA) {
+  let prev = smoothedLandmarksMap.get(handLabel);
+  if (!prev || prev.length !== rawLandmarksPx.length) {
+    const initial = rawLandmarksPx.map(pt => ({ x: pt.x, y: pt.y }));
+    smoothedLandmarksMap.set(handLabel, initial);
+    return initial;
+  }
+  const smoothed = rawLandmarksPx.map((pt, i) => ({
+    x: prev[i].x + (pt.x - prev[i].x) * alpha,
+    y: prev[i].y + (pt.y - prev[i].y) * alpha,
+  }));
+  smoothedLandmarksMap.set(handLabel, smoothed);
+  return smoothed;
+}
+
 function handleDragForHand(handLabel, pinching, indexPx) {
   if (timerExpired) return;  // no interaction after time's up
   if (pinching) {
@@ -696,8 +732,12 @@ function handleDragForHand(handLabel, pinching, indexPx) {
         candidate.placed = false;
       }
     } else if (drag.activeHand === handLabel && drag.piece) {
-      drag.piece.x = indexPx.x - drag.offsetX;
-      drag.piece.y = indexPx.y - drag.offsetY;
+      const targetX = indexPx.x - drag.offsetX;
+      const targetY = indexPx.y - drag.offsetY;
+
+      // Exponential Moving Average (EMA) Low-Pass Filter eliminates finger jitter / shakiness
+      drag.piece.x += (targetX - drag.piece.x) * SMOOTHING_ALPHA;
+      drag.piece.y += (targetY - drag.piece.y) * SMOOTHING_ALPHA;
     }
   } else {
     if (drag.activeHand === handLabel && drag.piece) {
@@ -753,10 +793,10 @@ function drawVideoFrame() {
   ctx.restore();
 }
 
-function drawLiveFrameOverlay(box) {
+function drawLiveFrameOverlay(box, isTooSmall = false) {
   ctx.save();
-  // Neo Blue frame border
-  ctx.strokeStyle = "#3b5bdb";
+  const mainColor = isTooSmall ? "#ef4444" : "#3b5bdb";
+  ctx.strokeStyle = mainColor;
   ctx.lineWidth = 3;
   ctx.strokeRect(box.x, box.y, box.width, box.height);
 
@@ -777,12 +817,14 @@ function drawLiveFrameOverlay(box) {
     ctx.stroke();
   }
 
-  // Dimension label
-  const ar = (box.width / box.height).toFixed(2);
-  ctx.font = "600 12px 'Plus Jakarta Sans', sans-serif";
-  ctx.fillStyle = "#3b5bdb";
+  // Dimension & warning label
+  const labelText = isTooSmall
+    ? "Bingkai terlalu kecil. Perluas area pengambilan gambar."
+    : `${Math.round(box.width)}×${Math.round(box.height)}  AR ${(box.width / box.height).toFixed(2)}`;
+  ctx.font = "700 12px 'Plus Jakarta Sans', sans-serif";
+  ctx.fillStyle = mainColor;
   ctx.textAlign = "left";
-  ctx.fillText(`${Math.round(box.width)}×${Math.round(box.height)}  AR ${ar}`, box.x + 4, Math.max(14, box.y - 8));
+  ctx.fillText(labelText, box.x + 4, Math.max(14, box.y - 8));
 
   ctx.restore();
 }
@@ -892,14 +934,16 @@ function drawHandSkeleton(landmarksPx) {
 
 function drawHandSkeletonsOverBoard(handsLandmarks, box) {
   if (!box || !handsLandmarks || handsLandmarks.length === 0) return;
-  for (const lm of handsLandmarks) {
-    const landmarksPx = lm.map(pt => toPixel(mirrorLandmarkX(pt)));
-    const overBoard = landmarksPx.some(p =>
+  handsLandmarks.forEach((lm, i) => {
+    const label = i === 0 ? "A" : "B";
+    const rawPx = lm.map(pt => toPixel(mirrorLandmarkX(pt)));
+    const smoothedPx = getSmoothedLandmarks(label, rawPx, 0.42);
+    const overBoard = smoothedPx.some(p =>
       p.x >= box.x && p.x <= box.x + box.width &&
       p.y >= box.y && p.y <= box.y + box.height
     );
-    if (overBoard) drawHandSkeleton(landmarksPx);
-  }
+    if (overBoard) drawHandSkeleton(smoothedPx);
+  });
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -996,11 +1040,7 @@ function finishShatter() {
    ═══════════════════════════════════════════════════════════════════════ */
 
 function handleFistReset() {
-  if (appState !== "puzzle") {
-    statusText.innerHTML = '<i class="ph ph-arrow-clockwise"></i> Direset';
-    resetPuzzleOnly();
-    return;
-  }
+  if (appState !== "puzzle" || !puzzle.solved) return;
 
   const reallySolved = reconcilePlacedState(puzzle.boardBox, puzzle.tileW, puzzle.tileH);
   puzzle.solved = reallySolved;
@@ -1008,9 +1048,6 @@ function handleFistReset() {
   if (reallySolved && puzzle.fullCapturedCanvas) {
     shatter.pendingCanvas = puzzle.fullCapturedCanvas;
     startShatter(puzzle.fullCapturedCanvas, puzzle.boardBox);
-  } else {
-    statusText.innerHTML = '<i class="ph ph-arrow-clockwise"></i> Direset';
-    resetPuzzleOnly();
   }
 }
 
@@ -1160,6 +1197,9 @@ function resetPuzzleOnly() {
   shatter.fragments = [];
   shatter.pendingCanvas = null;
   fistHoldCounter = 0;
+  freezeGate.holding = false;
+  freezeGate.since = 0;
+  freezeGate.box = null;
   lastSeenFrame.box = null;
   lastSeenFrame.at = 0;
   timerExpired = false;
@@ -1350,7 +1390,32 @@ function updateSettingsAvailability() {
   }
 }
 
+function isForegroundHand(landmarks) {
+  if (!landmarks || landmarks.length === 0) return false;
+  let minX = 1, maxX = 0, minY = 1, maxY = 0;
+  for (const pt of landmarks) {
+    if (pt.x < minX) minX = pt.x;
+    if (pt.x > maxX) maxX = pt.x;
+    if (pt.y < minY) minY = pt.y;
+    if (pt.y > maxY) maxY = pt.y;
+  }
+  const width = maxX - minX;
+  const height = maxY - minY;
+  // Filter out background hands/noise smaller than 5% of screen
+  return width >= 0.05 && height >= 0.05;
+}
+
+const cancelFrameBtn = document.getElementById("cancelFrameBtn");
+
+function updateCancelFrameBtnVisibility() {
+  if (!cancelFrameBtn) return;
+  const canCancel = freezeGate.holding || appState === "countdown" || (appState === "puzzle" && !puzzle.solved);
+  cancelFrameBtn.classList.toggle("hidden", !canCancel);
+}
+
 function processResults(result) {
+  updateCancelFrameBtnVisibility();
+
   // Shattering state — just animate
   if (appState === "shattering") {
     updateAndDrawShatter();
@@ -1365,7 +1430,8 @@ function processResults(result) {
     return;
   }
 
-  const handsLandmarks = result.landmarks || [];
+  const rawLandmarks = result.landmarks || [];
+  const handsLandmarks = rawLandmarks.filter(isForegroundHand);
   const rawNoHands = handsLandmarks.length === 0;
 
   if (rawNoHands) {
@@ -1426,16 +1492,18 @@ function processResults(result) {
 
   // Draw hand skeletons in tracking mode AND in solved puzzle final state
   if (appState === "tracking" || (appState === "puzzle" && puzzle.solved)) {
-    for (const lm of handsLandmarks) {
-      const landmarksPx = lm.map(pt => toPixel(mirrorLandmarkX(pt)));
-      drawHandSkeleton(landmarksPx);
-    }
+    handsLandmarks.forEach((lm, i) => {
+      const label = i === 0 ? "A" : "B";
+      const rawPx = lm.map(pt => toPixel(mirrorLandmarkX(pt)));
+      const smoothedPx = getSmoothedLandmarks(label, rawPx, 0.42);
+      drawHandSkeleton(smoothedPx);
+    });
   }
 
-  // Fist detection (ONLY in puzzle state for save/reset)
+  // Fist gesture detection (ONLY active when puzzle is SOLVED to save photo to strip)
   const anyFist = handsLandmarks.some(lm => isFist(lm));
   const draggingNow = drag.activeHand !== null && drag.piece !== null;
-  if (anyFist && !draggingNow && appState === "puzzle") {
+  if (appState === "puzzle" && puzzle.solved && anyFist && !draggingNow) {
     fistHoldCounter++;
     if (fistHoldCounter >= FIST_HOLD_FRAMES) {
       fistHoldCounter = 0;
@@ -1454,40 +1522,68 @@ function processResults(result) {
       return;
     }
 
+    // 1. If currently in freezeGate holding state, hold & lock the frame box
+    if (freezeGate.holding && freezeGate.box) {
+      drawLiveFrameOverlay(freezeGate.box);
+      lastSeenFrame.box = freezeGate.box;
+      lastSeenFrame.at = performance.now();
+
+      statusDot.className = "status-dot armed";
+      statusText.innerHTML = '<i class="ph ph-camera"></i> Membingkai foto…';
+      showInstruction('Membingkai foto… Tahan posisi');
+
+      if (performance.now() - freezeGate.since > FREEZE_HOLD_MS) {
+        const lockedBox = { ...freezeGate.box };
+        freezeGate.holding = false;
+        freezeGate.box = null;
+        startCountdown(lockedBox);
+        updateSettingsAvailability();
+      }
+      return;
+    }
+
+    // 2. Evaluate 2 hands framing
     if (handsLandmarks.length === 2) {
       const [handA, handB] = handsLandmarks;
       const indexA = mirrorLandmarkX(handA[LM.INDEX_TIP]);
       const indexB = mirrorLandmarkX(handB[LM.INDEX_TIP]);
       const frameBox = computeHandFrame(indexA, indexB);
 
+      const minW = canvas.width * MIN_FRAME_RATIO;
+      const minH = canvas.height * MIN_FRAME_RATIO;
+      const isTooSmall = frameBox.width < minW || frameBox.height < minH;
+
       if (frameBox.width > 4 && frameBox.height > 4) {
-        drawLiveFrameOverlay(frameBox);
+        drawLiveFrameOverlay(frameBox, isTooSmall);
         lastSeenFrame.box = frameBox;
         lastSeenFrame.at = performance.now();
       }
 
       const bothPinching = isPinching(handA) && isPinching(handB);
-      if (bothPinching && frameBox.width > 40 && frameBox.height > 40) {
-        if (!freezeGate.holding) {
-          freezeGate.holding = true;
-          freezeGate.since = performance.now();
-        }
+      if (bothPinching && !isTooSmall) {
+        freezeGate.holding = true;
+        freezeGate.since = performance.now();
+        freezeGate.box = { ...frameBox };
+
         statusDot.className = "status-dot armed";
         statusText.innerHTML = '<i class="ph ph-camera"></i> Membingkai foto…';
-        showInstruction('Tahan cubit dengan kedua tangan untuk mulai countdown');
+        showInstruction('Membingkai foto… Tahan posisi');
 
         if (performance.now() - freezeGate.since > FREEZE_HOLD_MS) {
+          const lockedBox = { ...freezeGate.box };
           freezeGate.holding = false;
-          startCountdown(frameBox);
+          freezeGate.box = null;
+          startCountdown(lockedBox);
           updateSettingsAvailability();
         }
+      } else if (bothPinching && isTooSmall) {
+        statusText.innerHTML = '<i class="ph ph-warning"></i> Bingkai terlalu kecil';
+        showInstruction('Bingkai terlalu kecil. Perluas area pengambilan gambar.');
       } else {
-        freezeGate.holding = false;
         statusText.innerHTML = '<i class="ph ph-hand"></i> 2 Tangan terdeteksi';
         showInstruction('Cubit dengan kedua tangan untuk membuat bingkai');
       }
     } else {
-      freezeGate.holding = false;
       const sinceLast = performance.now() - lastSeenFrame.at;
       if (lastSeenFrame.box && sinceLast < FRAME_GRACE_MS) {
         drawLiveFrameOverlay(lastSeenFrame.box);
@@ -1553,6 +1649,12 @@ filterSelect.addEventListener("change", (e) => {
 
 downloadStripBtn.addEventListener("click", downloadPhotoStrip);
 resetAllBtn.addEventListener("click", resetEverything);
+
+if (cancelFrameBtn) {
+  cancelFrameBtn.addEventListener("click", () => {
+    resetPuzzleOnly();
+  });
+}
 
 // Mobile touch & pointer drag support on canvas
 let pointerDragPiece = null;
@@ -1675,6 +1777,30 @@ document.querySelectorAll('input[name="themeMode"]').forEach((radio) => {
     }
   });
 });
+
+// Confidence sensitivity range slider
+const confidenceSliderEl = document.getElementById("confidenceSlider");
+const confValueBadgeEl = document.getElementById("confValueBadge");
+
+if (confidenceSliderEl) {
+  confidenceSliderEl.addEventListener("input", (e) => {
+    const valPct = parseInt(e.target.value, 10);
+    if (confValueBadgeEl) confValueBadgeEl.textContent = `${valPct}%`;
+    updateConfidenceThreshold(valPct / 100);
+  });
+}
+
+// More / Advanced Settings accordion toggle
+const moreSettingsToggleEl = document.getElementById("moreSettingsToggle");
+const moreSettingsContentEl = document.getElementById("moreSettingsContent");
+
+if (moreSettingsToggleEl && moreSettingsContentEl) {
+  moreSettingsToggleEl.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const isOpen = moreSettingsToggleEl.classList.toggle("open");
+    moreSettingsContentEl.classList.toggle("hidden", !isOpen);
+  });
+}
 
 // Camera selection dropdown
 const cameraSelectEl = document.getElementById("cameraSelect");
