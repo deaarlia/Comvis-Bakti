@@ -48,7 +48,7 @@ const DISPLACE_ANIM_MS    = 220;
 /* ── DOM Elements ────────────────────────────────────────────────────── */
 const videoEl         = document.getElementById("webcam");
 const canvas          = document.getElementById("sceneCanvas");
-const ctx             = canvas.getContext("2d", { willReadFrequently: true });
+const ctx             = canvas.getContext("2d");
 
 const statusDot       = document.getElementById("statusDot");
 const statusText      = document.getElementById("statusText");
